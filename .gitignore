@@ -1,4 +1,7 @@
 __pycache__/
 env/
-*.exe
-*.txt
+xray/
+chain.txt
+local.txt
+proxy.txt
+routing.txt
