@@ -1,8 +1,10 @@
 import sys
 from PyQt6.QtGui import QAction
 from PyQt6.QtWidgets import QApplication, QMainWindow, QTabWidget, QHBoxLayout, QWidget
+from chain_tab import ChainTab
 from local_tab import LocalTab
 from proxy_tab import ProxyTab
+from routing_tab import RoutingTab
 
 class V2RayConfigTool(QMainWindow):
     def __init__(self):
@@ -30,9 +32,12 @@ class V2RayConfigTool(QMainWindow):
 
         tab_left.addTab(LocalTab(tab_left), 'Local')
         tab_left.addTab(ProxyTab(tab_left), 'Proxy')
+        tab_left.addTab(ChainTab(tab_left), 'Chain')
 
         right_tab = QTabWidget()
         layout_main.addWidget(right_tab, 2)
+
+        right_tab.addTab(RoutingTab(right_tab), 'Routing')
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

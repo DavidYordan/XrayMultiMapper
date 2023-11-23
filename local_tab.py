@@ -41,6 +41,10 @@ class LocalTab(QWidget):
             print(str(e))
 
     def cell_was_clicked(self, row, column):
+        if column == 0:
+            chk_box = self.table.cellWidget(row, 0)
+            if chk_box:
+                chk_box.setChecked(not chk_box.isChecked())
         if column == 1:
             self.show_protocol_selection_menu(row, column)
 
