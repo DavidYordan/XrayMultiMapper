@@ -1,0 +1,1026 @@
+{
+  "log": {
+    "access": "log.log",
+    "error": "error.log",
+    "loglevel": "warning"
+  },
+  "inbounds": [
+    {
+      "listen": "127.0.0.1",
+      "port": 30001,
+      "protocol": "socks",
+      "settings": {
+        "auth": "noauth",
+        "udp": true
+      },
+      "tag": "30001in"
+    },
+    {
+      "listen": "127.0.0.1",
+      "port": 30002,
+      "protocol": "socks",
+      "settings": {
+        "auth": "noauth",
+        "udp": true
+      },
+      "tag": "30002in"
+    },
+    {
+      "listen": "127.0.0.1",
+      "port": 30003,
+      "protocol": "socks",
+      "settings": {
+        "auth": "noauth",
+        "udp": true
+      },
+      "tag": "30003in"
+    },
+    {
+      "listen": "127.0.0.1",
+      "port": 30004,
+      "protocol": "socks",
+      "settings": {
+        "auth": "noauth",
+        "udp": true
+      },
+      "tag": "30004in"
+    },
+    {
+      "listen": "127.0.0.1",
+      "port": 30005,
+      "protocol": "socks",
+      "settings": {
+        "auth": "noauth",
+        "udp": true
+      },
+      "tag": "30005in"
+    },
+    {
+      "listen": "127.0.0.1",
+      "port": 30006,
+      "protocol": "socks",
+      "settings": {
+        "auth": "noauth",
+        "udp": true
+      },
+      "tag": "30006in"
+    },
+    {
+      "listen": "127.0.0.1",
+      "port": 30007,
+      "protocol": "socks",
+      "settings": {
+        "auth": "noauth",
+        "udp": true
+      },
+      "tag": "30007in"
+    },
+    {
+      "listen": "127.0.0.1",
+      "port": 30008,
+      "protocol": "socks",
+      "settings": {
+        "auth": "noauth",
+        "udp": true
+      },
+      "tag": "30008in"
+    },
+    {
+      "listen": "127.0.0.1",
+      "port": 30009,
+      "protocol": "socks",
+      "settings": {
+        "auth": "noauth",
+        "udp": true
+      },
+      "tag": "30009in"
+    },
+    {
+      "listen": "127.0.0.1",
+      "port": 30010,
+      "protocol": "socks",
+      "settings": {
+        "auth": "noauth",
+        "udp": true
+      },
+      "tag": "30010in"
+    },
+    {
+      "listen": "127.0.0.1",
+      "port": 30011,
+      "protocol": "socks",
+      "settings": {
+        "auth": "noauth",
+        "udp": true
+      },
+      "tag": "30011in"
+    },
+    {
+      "listen": "127.0.0.1",
+      "port": 30012,
+      "protocol": "socks",
+      "settings": {
+        "auth": "noauth",
+        "udp": true
+      },
+      "tag": "30012in"
+  },
+    {
+      "listen": "127.0.0.1",
+      "port": 30013,
+      "protocol": "socks",
+      "settings": {
+        "auth": "noauth",
+        "udp": true
+      },
+      "tag": "30013in"
+    },
+    {
+      "listen": "127.0.0.1",
+      "port": 30014,
+      "protocol": "socks",
+      "settings": {
+        "auth": "noauth",
+        "udp": true
+      },
+      "tag": "30014in"
+    },
+    {
+      "listen": "127.0.0.1",
+      "port": 30015,
+      "protocol": "socks",
+      "settings": {
+        "auth": "noauth",
+        "udp": true
+      },
+      "tag": "30015in"
+    },
+    {
+      "listen": "127.0.0.1",
+      "port": 30101,
+      "protocol": "socks",
+      "settings": {
+        "auth": "noauth",
+        "udp": true
+      },
+      "tag": "30101in"
+    },
+    {
+      "listen": "127.0.0.1",
+      "port": 30102,
+      "protocol": "socks",
+      "settings": {
+        "auth": "noauth",
+        "udp": true
+      },
+      "tag": "30102in"
+    },
+    {
+      "listen": "127.0.0.1",
+      "port": 30103,
+      "protocol": "socks",
+      "settings": {
+        "auth": "noauth",
+        "udp": true
+      },
+      "tag": "30103in"
+    },
+    {
+      "listen": "127.0.0.1",
+      "port": 30104,
+      "protocol": "socks",
+      "settings": {
+        "auth": "noauth",
+        "udp": true
+      },
+      "tag": "30104in"
+    },
+    {
+      "listen": "127.0.0.1",
+      "port": 30105,
+      "protocol": "socks",
+      "settings": {
+        "auth": "noauth",
+        "udp": true
+      },
+      "tag": "30105in"
+    },
+    {
+      "listen": "127.0.0.1",
+      "port": 30106,
+      "protocol": "socks",
+      "settings": {
+        "auth": "noauth",
+        "udp": true
+      },
+      "tag": "30106in"
+    },
+    {
+      "listen": "127.0.0.1",
+      "port": 30107,
+      "protocol": "socks",
+      "settings": {
+        "auth": "noauth",
+        "udp": true
+      },
+      "tag": "301071in"
+    },
+    {
+      "listen": "127.0.0.1",
+      "port": 30108,
+      "protocol": "socks",
+      "settings": {
+        "auth": "noauth",
+        "udp": true
+      },
+      "tag": "30108in"
+    },
+    {
+      "listen": "127.0.0.1",
+      "port": 30109,
+      "protocol": "socks",
+      "settings": {
+        "auth": "noauth",
+        "udp": true
+      },
+      "tag": "30109in"
+    },
+    {
+      "listen": "127.0.0.1",
+      "port": 30201,
+      "protocol": "socks",
+      "settings": {
+        "auth": "noauth",
+        "udp": true
+      },
+      "tag": "30201in"
+    },
+    {
+      "listen": "127.0.0.1",
+      "port": 30202,
+      "protocol": "socks",
+      "settings": {
+        "auth": "noauth",
+        "udp": true
+      },
+      "tag": "30202in"
+    },
+    {
+      "listen": "127.0.0.1",
+      "port": 30203,
+      "protocol": "socks",
+      "settings": {
+        "auth": "noauth",
+        "udp": true
+      },
+      "tag": "30203in"
+    },
+    {
+      "listen": "127.0.0.1",
+      "port": 30204,
+      "protocol": "socks",
+      "settings": {
+        "auth": "noauth",
+        "udp": true
+      },
+      "tag": "30204in"
+    },
+    {
+      "listen": "127.0.0.1",
+      "port": 30205,
+      "protocol": "socks",
+      "settings": {
+        "auth": "noauth",
+        "udp": true
+      },
+      "tag": "30205in"
+    },
+    {
+      "listen": "127.0.0.1",
+      "port": 30206,
+      "protocol": "socks",
+      "settings": {
+        "auth": "noauth",
+        "udp": true
+      },
+      "tag": "30206in"
+    },
+    {
+      "listen": "127.0.0.1",
+      "port": 30207,
+      "protocol": "socks",
+      "settings": {
+        "auth": "noauth",
+        "udp": true
+      },
+      "tag": "30207in"
+    },
+    {
+      "listen": "127.0.0.1",
+      "port": 30208,
+      "protocol": "socks",
+      "settings": {
+        "auth": "noauth",
+        "udp": true
+      },
+      "tag": "30208in"
+    },
+    {
+      "listen": "127.0.0.1",
+      "port": 30209,
+      "protocol": "socks",
+      "settings": {
+        "auth": "noauth",
+        "udp": true
+      },
+      "tag": "30209in"
+    }
+  ],
+  "outbounds": [
+    {
+      "tag": "us-01",
+      "protocol": "shadowsocks",
+      "settings": {
+        "servers": [
+          {
+            "address": "litmm.bygcloud.xyz",
+            "port": 26001,
+            "method": "aes-128-gcm",
+            "password": "85d1d00a-b8bb-4e48-92a6-de09cf3ba1ee"
+          }
+        ]
+      }
+    },
+    {
+      "tag": "us-02",
+      "protocol": "shadowsocks",
+      "settings": {
+        "servers": [
+          {
+            "address": "litmm.bygcloud.xyz",
+            "port": 26002,
+            "method": "aes-128-gcm",
+            "password": "85d1d00a-b8bb-4e48-92a6-de09cf3ba1ee"
+          }
+        ]
+      }
+    },
+    {
+      "tag": "us-03",
+      "protocol": "shadowsocks",
+      "settings": {
+        "servers": [
+          {
+            "address": "litmm.bygcloud.xyz",
+            "port": 26003,
+            "method": "aes-128-gcm",
+            "password": "85d1d00a-b8bb-4e48-92a6-de09cf3ba1ee"
+          }
+        ]
+      }
+    },
+    {
+      "tag": "my-01",
+      "protocol": "shadowsocks",
+      "settings": {
+        "servers": [
+          {
+            "address": "litmm.bygcloud.xyz",
+            "port": 27018,
+            "method": "aes-128-gcm",
+            "password": "85d1d00a-b8bb-4e48-92a6-de09cf3ba1ee"
+          }
+        ]
+      }
+    },
+    {
+      "tag": "sg-01",
+      "protocol": "shadowsocks",
+      "settings": {
+        "servers": [
+          {
+            "address": "litmm.bygcloud.xyz",
+            "port": 23001,
+            "method": "aes-128-gcm",
+            "password": "85d1d00a-b8bb-4e48-92a6-de09cf3ba1ee"
+          }
+        ]
+      }
+    },
+    {
+      "tag": "sg-02",
+      "protocol": "shadowsocks",
+      "settings": {
+        "servers": [
+          {
+            "address": "litmm.bygcloud.xyz",
+            "port": 23002,
+            "method": "aes-128-gcm",
+            "password": "85d1d00a-b8bb-4e48-92a6-de09cf3ba1ee"
+          }
+        ]
+      }
+    },
+    {
+      "tag": "sg-03",
+      "protocol": "shadowsocks",
+      "settings": {
+        "servers": [
+          {
+            "address": "litmm.bygcloud.xyz",
+            "port": 23003,
+            "method": "aes-128-gcm",
+            "password": "85d1d00a-b8bb-4e48-92a6-de09cf3ba1ee"
+          }
+        ]
+      }
+    },
+    {
+      "tag": "30001out",
+      "protocol": "socks",
+      "settings": {
+        "servers": [
+          {
+            "address": "47.254.75.99",
+            "port": 5555,
+            "users": [
+              {
+                "user": "123456",
+                "pass": "654321",
+                "level": 0
+              }
+            ]
+          }
+        ]
+      },
+      "proxysettings": {
+        "tag": "us-01"
+      }
+    },
+    {
+      "tag": "30002out",
+      "protocol": "socks",
+      "settings": {
+        "servers": [
+          {
+            "address": "47.88.33.117",
+            "port": 5555,
+            "users": [
+              {
+                "user": "123456",
+                "pass": "654321",
+                "level": 0
+              }
+            ]
+          }
+        ]
+      },
+      "proxysettings": {
+        "tag": "us-02"
+      }
+    },
+    {
+      "tag": "30003out",
+      "protocol": "socks",
+      "settings": {
+        "servers": [
+          {
+            "address": "47.254.16.128",
+            "port": 5555,
+            "users": [
+              {
+                "user": "123456",
+                "pass": "654321",
+                "level": 0
+              }
+            ]
+          }
+        ]
+      },
+      "proxysettings": {
+        "tag": "us-03"
+      }
+    },
+    {
+      "tag": "30004out",
+      "protocol": "socks",
+      "settings": {
+        "servers": [
+          {
+            "address": "47.254.17.174",
+            "port": 5555,
+            "users": [
+              {
+                "user": "123456",
+                "pass": "654321",
+                "level": 0
+              }
+            ]
+          }
+        ]
+      },
+      "proxysettings": {
+        "tag": "us-01"
+      }
+    },
+    {
+      "tag": "30005out",
+      "protocol": "socks",
+      "settings": {
+        "servers": [
+          {
+            "address": "47.254.87.223",
+            "port": 5555,
+            "users": [
+              {
+                "user": "123456",
+                "pass": "654321",
+                "level": 0
+              }
+            ]
+          }
+        ]
+      },
+      "proxysettings": {
+        "tag": "us-02"
+      }
+    },
+    {
+      "tag": "30006out",
+      "protocol": "socks",
+      "settings": {
+        "servers": [
+          {
+            "address": "47.251.45.195",
+            "port": 5555,
+            "users": [
+              {
+                "user": "ss2",
+                "pass": "ss2",
+                "level": 0
+              }
+            ]
+          }
+        ]
+      },
+      "proxysettings": {
+        "tag": "us-03"
+      }
+    },
+    {
+      "tag": "30007out",
+      "protocol": "socks",
+      "settings": {
+        "servers": [
+          {
+            "address": "47.254.30.253",
+            "port": 5555,
+            "users": [
+              {
+                "user": "ss2",
+                "pass": "ss2",
+                "level": 0
+              }
+            ]
+          }
+        ]
+      },
+      "proxysettings": {
+        "tag": "us-01"
+      }
+    },
+    {
+      "tag": "30008out",
+      "protocol": "socks",
+      "settings": {
+        "servers": [
+          {
+            "address": "47.254.72.144",
+            "port": 5555,
+            "users": [
+              {
+                "user": "ss2",
+                "pass": "ss2",
+                "level": 0
+              }
+            ]
+          }
+        ]
+      },
+      "proxysettings": {
+        "tag": "us-02"
+      }
+    },
+    {
+      "tag": "30009out",
+      "protocol": "socks",
+      "settings": {
+        "servers": [
+          {
+            "address": "47.88.102.205",
+            "port": 5555,
+            "users": [
+              {
+                "user": "ss2",
+                "pass": "ss2",
+                "level": 0
+              }
+            ]
+          }
+        ]
+      },
+      "proxysettings": {
+        "tag": "us-03"
+      }
+    },
+    {
+      "tag": "30010out",
+      "protocol": "socks",
+      "settings": {
+        "servers": [
+          {
+            "address": "47.89.195.18",
+            "port": 5555,
+            "users": [
+              {
+                "user": "ss2",
+                "pass": "ss2",
+                "level": 0
+              }
+            ]
+          }
+        ]
+      },
+      "proxysettings": {
+        "tag": "us-01"
+      }
+    },
+    {
+      "tag": "30101out",
+      "protocol": "socks",
+      "settings": {
+        "servers": [
+          {
+            "address": "47.254.215.86",
+            "port": 5555,
+            "users": [
+              {
+                "user": "123456",
+                "pass": "654321",
+                "level": 0
+              }
+            ]
+          }
+        ]
+      },
+      "proxysettings": {
+        "tag": "my-01"
+      }
+    },
+    {
+      "tag": "30102out",
+      "protocol": "socks",
+      "settings": {
+        "servers": [
+          {
+            "address": "47.254.197.153",
+            "port": 5555,
+            "users": [
+              {
+                "user": "123456",
+                "pass": "654321",
+                "level": 0
+              }
+            ]
+          }
+        ]
+      },
+      "proxysettings": {
+        "tag": "my-01"
+      }
+    },
+    {
+      "tag": "30103out",
+      "protocol": "socks",
+      "settings": {
+        "servers": [
+          {
+            "address": "47.254.196.194",
+            "port": 5555,
+            "users": [
+              {
+                "user": "123456",
+                "pass": "654321",
+                "level": 0
+              }
+            ]
+          }
+        ]
+      },
+      "proxysettings": {
+        "tag": "my-01"
+      }
+    },
+    {
+      "tag": "30104out",
+      "protocol": "socks",
+      "settings": {
+        "servers": [
+          {
+            "address": "47.254.239.127",
+            "port": 5555,
+            "users": [
+              {
+                "user": "123456",
+                "pass": "654321",
+                "level": 0
+              }
+            ]
+          }
+        ]
+      },
+      "proxysettings": {
+        "tag": "my-01"
+      }
+    },
+    {
+      "tag": "30105out",
+      "protocol": "socks",
+      "settings": {
+        "servers": [
+          {
+            "address": "47.254.207.151",
+            "port": 5555,
+            "users": [
+              {
+                "user": "123456",
+                "pass": "654321",
+                "level": 0
+              }
+            ]
+          }
+        ]
+      },
+      "proxysettings": {
+        "tag": "my-01"
+      }
+    },
+    {
+      "tag": "30201out",
+      "protocol": "socks",
+      "settings": {
+        "servers": [
+          {
+            "address": "8.222.156.117",
+            "port": 5555,
+            "users": [
+              {
+                "user": "ss2",
+                "pass": "ss2",
+                "level": 0
+              }
+            ]
+          }
+        ]
+      },
+      "proxysettings": {
+        "tag": "sg-01"
+      }
+    },
+    {
+      "tag": "30202out",
+      "protocol": "socks",
+      "settings": {
+        "servers": [
+          {
+            "address": "47.245.122.110",
+            "port": 5555,
+            "users": [
+              {
+                "user": "ss2",
+                "pass": "ss2",
+                "level": 0
+              }
+            ]
+          }
+        ]
+      },
+      "proxysettings": {
+        "tag": "sg-02"
+      }
+    },
+    {
+      "tag": "30203out",
+      "protocol": "socks",
+      "settings": {
+        "servers": [
+          {
+            "address": "8.222.226.103",
+            "port": 5555,
+            "users": [
+              {
+                "user": "ss2",
+                "pass": "ss2",
+                "level": 0
+              }
+            ]
+          }
+        ]
+      },
+      "proxysettings": {
+        "tag": "sg-03"
+      }
+    },
+    {
+      "tag": "30204out",
+      "protocol": "socks",
+      "settings": {
+        "servers": [
+          {
+            "address": "8.219.135.193",
+            "port": 5555,
+            "users": [
+              {
+                "user": "ss2",
+                "pass": "ss2",
+                "level": 0
+              }
+            ]
+          }
+        ]
+      },
+      "proxysettings": {
+        "tag": "sg-01"
+      }
+    },
+    {
+      "tag": "30205out",
+      "protocol": "socks",
+      "settings": {
+        "servers": [
+          {
+            "address": "8.222.232.30",
+            "port": 5555,
+            "users": [
+              {
+                "user": "ss2",
+                "pass": "ss2",
+                "level": 0
+              }
+            ]
+          }
+        ]
+      },
+      "proxysettings": {
+        "tag": "sg-02"
+      }
+    }
+  ],
+
+  "routing": {
+    "domainStrategy": "AsIs",
+    "rules": [
+      {
+        "type": "field",
+        "inboundTag": [
+          "30001in"
+        ],
+        "outboundTag": "30001out"
+      },
+      {
+        "type": "field",
+        "inboundTag": [
+          "30002in"
+        ],
+        "outboundTag": "30002out"
+      },
+      {
+        "type": "field",
+        "inboundTag": [
+          "30003in"
+        ],
+        "outboundTag": "30003out"
+      },
+      {
+        "type": "field",
+        "inboundTag": [
+          "30004in"
+        ],
+        "outboundTag": "30004out"
+      },
+      {
+        "type": "field",
+        "inboundTag": [
+          "30005in"
+        ],
+        "outboundTag": "30005out"
+      },
+      {
+        "type": "field",
+        "inboundTag": [
+          "30006in"
+        ],
+        "outboundTag": "30006out"
+      },
+      {
+        "type": "field",
+        "inboundTag": [
+          "30007in"
+        ],
+        "outboundTag": "30007out"
+      },
+      {
+        "type": "field",
+        "inboundTag": [
+          "30008in"
+        ],
+        "outboundTag": "30008out"
+      },
+      {
+        "type": "field",
+        "inboundTag": [
+          "30009in"
+        ],
+        "outboundTag": "30009out"
+      },
+      {
+        "type": "field",
+        "inboundTag": [
+          "30010in"
+        ],
+        "outboundTag": "30010out"
+      },
+      {
+        "type": "field",
+        "inboundTag": [
+          "30101in"
+        ],
+        "outboundTag": "30101out"
+      },
+      {
+        "type": "field",
+        "inboundTag": [
+          "30102in"
+        ],
+        "outboundTag": "30102out"
+      },
+      {
+        "type": "field",
+        "inboundTag": [
+          "30103in"
+        ],
+        "outboundTag": "30103out"
+      },
+      {
+        "type": "field",
+        "inboundTag": [
+          "30104in"
+        ],
+        "outboundTag": "30104out"
+      },
+      {
+        "type": "field",
+        "inboundTag": [
+          "30105in"
+        ],
+        "outboundTag": "30105out"
+      },
+      {
+        "type": "field",
+        "inboundTag": [
+          "30201in"
+        ],
+        "outboundTag": "30201out"
+      },
+      {
+        "type": "field",
+        "inboundTag": [
+          "30202in"
+        ],
+        "outboundTag": "30202out"
+      },
+      {
+        "type": "field",
+        "inboundTag": [
+          "30203in"
+        ],
+        "outboundTag": "30203out"
+      },
+      {
+        "type": "field",
+        "inboundTag": [
+          "30204in"
+        ],
+        "outboundTag": "30204out"
+      },
+      {
+        "type": "field",
+        "inboundTag": [
+          "30205in"
+        ],
+        "outboundTag": "30205out"
+      }
+    ]
+  }
+}
+  
