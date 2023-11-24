@@ -26,7 +26,9 @@ class LocalTab(QWidget):
                 }
             if self.is_row_exists(data):
                 return
-            insert_position = self.find_insert_position(data.get('address', ''), data.get('port', ''))
+            address = data.get('address', '')
+            port = data.get('port', '')
+            insert_position = self.find_insert_position(address, port)
             self.table.insertRow(insert_position)
 
             for idx, col in enumerate(self.columns):

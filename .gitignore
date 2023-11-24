@@ -5,3 +5,4 @@ chain.txt
 local.txt
 proxy.txt
 routing.txt
+*.json

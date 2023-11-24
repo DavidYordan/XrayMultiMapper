@@ -1,10 +1,13 @@
 import sys
+from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QAction
-from PyQt6.QtWidgets import QApplication, QMainWindow, QTabWidget, QHBoxLayout, QWidget
+from PyQt6.QtWidgets import QApplication, QMainWindow, QTabWidget, QHBoxLayout, QWidget, QSplitter, QStyleFactory
+
 from chain_tab import ChainTab
 from local_tab import LocalTab
 from proxy_tab import ProxyTab
 from routing_tab import RoutingTab
+
 
 class V2RayConfigTool(QMainWindow):
     def __init__(self):
@@ -27,20 +30,39 @@ class V2RayConfigTool(QMainWindow):
         self.setCentralWidget(central_widget)
         layout_main = QHBoxLayout(central_widget)
 
-        tab_left = QTabWidget()
-        layout_main.addWidget(tab_left, 4)
+        splitter = QSplitter(Qt.Orientation.Horizontal)
+        layout_main.addWidget(splitter)
 
-        tab_left.addTab(LocalTab(tab_left), 'Local')
-        tab_left.addTab(ProxyTab(tab_left), 'Proxy')
-        tab_left.addTab(ChainTab(tab_left), 'Chain')
+        splitter.setStyleSheet("""
+            QSplitter::handle {
+                background-color: #0057D8;
+                border: 1px solid #004BA0;
+            }
+            QSplitter::handle:hover {
+                background-color: #007BFF;
+            }
+            QSplitter::handle:pressed {
+                background-color: #003E7E;
+            }
+        """)
 
-        right_tab = QTabWidget()
-        layout_main.addWidget(right_tab, 2)
+        self.tab_left = QTabWidget()
+        splitter.addWidget(self.tab_left)
 
-        right_tab.addTab(RoutingTab(right_tab), 'Routing')
+        self.tab_left.addTab(LocalTab(self.tab_left), 'Local')
+        self.tab_left.addTab(ProxyTab(self.tab_left), 'Proxy')
+        # self.tab_left.addTab(ChainTab(self.tab_left), 'Chain')
+
+        self.tab_right = QTabWidget()
+        splitter.addWidget(self.tab_right)
+
+        self.tab_right.addTab(RoutingTab(self.tab_right), 'Routing')
+
+        splitter.setSizes([300, 300])
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
+    app.setStyle(QStyleFactory.create('Fusion'))
     main_win = V2RayConfigTool()
     main_win.show()
     sys.exit(app.exec())

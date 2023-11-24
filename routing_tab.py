@@ -6,7 +6,7 @@ from PyQt6.QtWidgets import QVBoxLayout, QHBoxLayout, QPushButton, QTableWidgetI
 class RoutingTab(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.columns = ['Select', 'Protocol', 'Address', 'Port', 'User', 'Password']
+        self.columns = ['Select', 'Inbounds', 'First', 'Second', 'Third', 'Fourth']
         self.original_cell_values = {}
         self.setup_ui()
 
