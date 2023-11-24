@@ -80,10 +80,14 @@ class LocalTab(QWidget):
         return str(port)
     
     def is_row_exists(self, data, ignore_row=None):
+        address = data.get('address')
+        port = data.get('port')
         for row in range(self.table.rowCount()):
             if row == ignore_row:
                 continue
-            if all(self.table.item(row, col) and self.table.item(row, col).text() == data.get(self.columns[col].lower(), '') for col in range(1, 6)):
+            row_address = self.table.item(row, 2).text() if self.table.item(row, 2) else ''
+            row_port = self.table.item(row, 3).text() if self.table.item(row, 3) else ''
+            if address == row_address and port == row_port:
                 return True
         return False
 
@@ -94,10 +98,13 @@ class LocalTab(QWidget):
                     self.parse_link(line.strip())
 
     def on_cell_changed(self, row, column):
+        if column not in [2, 3]:
+            return
+        
         if (row, column) not in self.original_cell_values:
             self.original_cell_values[(row, column)] = self.table.item(row, column).text()
-            
-        data = {self.columns[col].lower(): self.table.item(row, col).text() if self.table.item(row, col) else '' for col in range(1, 6)}
+
+        data = {'address': self.table.item(row, 2).text(), 'port': self.table.item(row, 3).text() if self.table.item(row, 3) else ''}
         if self.is_row_exists(data, ignore_row=row):
             self.table.item(row, column).setText(self.original_cell_values[(row, column)])
         else:
