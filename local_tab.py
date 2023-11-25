@@ -1,60 +1,109 @@
 import os
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QAction, QCursor
-from PyQt6.QtWidgets import QVBoxLayout, QHBoxLayout, QPushButton, QTableWidgetItem, QTableWidget, QCheckBox, QMenu, QWidget
+from PyQt6.QtGui import (
+    QAction,
+    QCursor
+)
+from PyQt6.QtWidgets import (
+    QCheckBox,
+    QHBoxLayout,
+    QHeaderView,
+    QMenu,
+    QPushButton,
+    QTableWidget,
+    QTableWidgetItem,
+    QVBoxLayout,
+    QWidget,
+)
+
+from globals import (
+    local_original_cell_values,
+    local_original_cell_values_lock
+)
 
 class LocalTab(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.columns = ['Select', 'Protocol', 'Address', 'Port', 'User', 'Password']
-        self.original_cell_values = {}
         self.setup_ui()
 
-    def add_row_local(self, data=None):
+    def add_row_local(self, data={}):
 
         def _make_checkbox(insert_position, idx):
+            widget = QWidget()
+            layout = QHBoxLayout(widget)
             chk_box = QCheckBox()
-            chk_box.setStyleSheet("QCheckBox { margin-left: 50%; margin-right: 50%; }")
-            self.table.setCellWidget(insert_position, idx, chk_box)
+            layout.addWidget(chk_box)
+            layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            layout.setContentsMargins(0, 0, 0, 0)
+            self.table.setCellWidget(insert_position, idx, widget)
 
         try:
             if not data:
                 data = {
-                    'protocol': 'socks5',
-                    'address': '0.0.0.0',
-                    'port': self.find_next_port()
+                    'Protocol': 'socks5',
+                    'Address': '0.0.0.0',
+                    'Port': self.find_next_port()
                 }
+            if not self.is_row_data_valid(data):
+                return
             if self.is_row_exists(data):
                 return
-            address = data.get('address', '')
-            port = data.get('port', '')
-            insert_position = self.find_insert_position(address, port)
-            self.table.insertRow(insert_position)
+            insert_position = self.find_insert_position(data.get('Address', ''), data.get('Port', ''))
 
-            for idx, col in enumerate(self.columns):
-                if col == 'Select':
-                    _make_checkbox(insert_position, idx)
-                    continue
-                item = QTableWidgetItem(data.get(col.lower()))
-                item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-                self.table.setItem(insert_position, idx, item)
+            self.table.blockSignals(True)
+            try:
+                self.table.insertRow(insert_position)
+
+                for idx, col in enumerate(self.columns):
+                    if col == 'Select':
+                        _make_checkbox(insert_position, idx)
+                        continue
+                    item = QTableWidgetItem(data.get(col, ''))
+                    item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                    self.table.setItem(insert_position, idx, item)
+            except Exception as e:
+                print(str(e))
+            finally:
+                self.table.blockSignals(False)
+
+            self.update_original_values(insert_position)
 
         except Exception as e:
             print(str(e))
 
     def cell_was_clicked(self, row, column):
         if column == 0:
-            chk_box = self.table.cellWidget(row, 0)
-            if chk_box:
-                chk_box.setChecked(not chk_box.isChecked())
+            chk_box = self.get_checkbox(row)
+            if not chk_box:
+                return
+            chk_box.setChecked(not chk_box.isChecked())
         if column == 1:
             self.show_protocol_selection_menu(row, column)
 
     def delete_selected_rows_local(self):
         for row in reversed(range(self.table.rowCount())):
-            chk_box = self.table.cellWidget(row, 0)
-            if chk_box and chk_box.isChecked():
+            chk_box = self.get_checkbox(row)
+            if not chk_box:
+                continue
+            if chk_box.isChecked():
                 self.table.removeRow(row)
+        self.reload_original_values()
+
+    def extract_table_data(self):
+        table_data = {}
+        for row in range(self.table.rowCount()):
+            row_data = {}
+            for col, col_name in enumerate(self.columns):
+                if col_name == 'Select':
+                    continue
+                else:
+                    item = self.table.item(row, col)
+                    row_data[col_name] = item.text() if item else ''
+            if not self.is_row_data_valid(row_data):
+                continue
+            table_data[f'{row_data["Address"]}:{row_data["Port"]}'] = row_data
+        return table_data
 
     def find_insert_position(self, address, port):
         row_count = self.table.rowCount()
@@ -67,64 +116,89 @@ class LocalTab(QWidget):
 
     def find_next_port(self):
         ports = set()
-        for row in range(self.table.rowCount()):
-            if self.table.item(row, 2).text() != '0.0.0.0':
-                continue
-            row_port = self.table.item(row, 3)
-            if row_port:
-                ports.add(row_port.text())
+
+        with local_original_cell_values_lock:
+            for row in range(int(len(local_original_cell_values)/5)):
+                if local_original_cell_values.get((row, 2)) != '0.0.0.0':
+                    continue
+                row_port = local_original_cell_values.get((row, 3))
+                if not row_port:
+                    continue
+                ports.add(row_port)
 
         port = 30001
         while str(port) in ports:
             port += 1
         return str(port)
     
+    def get_checkbox(self, row):
+        widget = self.table.cellWidget(row, 0)
+        if widget is not None:
+            chk_box = widget.layout().itemAt(0).widget()
+            if isinstance(chk_box, QCheckBox):
+                return chk_box
+        return None
+    
+    def is_row_data_valid(self, row_data):
+        if row_data.get('Protocol', '') not in ['http', 'socks5']:
+            return False
+        if '.' not in row_data.get('Address', ''):
+            return False
+        if not row_data.get('Port', '').isdigit():
+            return False
+        return True
+    
     def is_row_exists(self, data, ignore_row=None):
-        address = data.get('address')
-        port = data.get('port')
-        for row in range(self.table.rowCount()):
-            if row == ignore_row:
-                continue
-            row_address = self.table.item(row, 2).text() if self.table.item(row, 2) else ''
-            row_port = self.table.item(row, 3).text() if self.table.item(row, 3) else ''
-            if address == row_address and port == row_port:
-                return True
+        address = data.get('Address', '')
+        port = data.get('Port', '')
+
+        with local_original_cell_values_lock:
+            for row in range(int(len(local_original_cell_values)/5)):
+                if row == ignore_row:
+                    continue
+                row_address = local_original_cell_values.get((row, 2))
+                row_port = local_original_cell_values.get((row, 3))
+                if address == row_address and port == row_port:
+                    return True
         return False
 
     def load_data_from_file(self):
-        if os.path.exists("local.txt"):
-            with open("local.txt", "r") as file:
-                for line in file:
-                    self.parse_link(line.strip())
+        if not os.path.exists("local.txt"):
+            return
+        with open("local.txt", "r") as file:
+            for line in file:
+                self.parse_link(line.strip())
 
     def on_cell_changed(self, row, column):
-        if column not in [2, 3]:
+        if column == 0:
             return
         
-        if (row, column) not in self.original_cell_values:
-            self.original_cell_values[(row, column)] = self.table.item(row, column).text()
+        elif column in [2, 3]:
+            address = self.table.item(row, 2).text() if self.table.item(row, 2) else ''
+            port = self.table.item(row, 3).text() if self.table.item(row, 3) else ''
+            data = {'Address': address, 'Port': port}
+            if self.is_row_exists(data, ignore_row=row):
+                self.table.item(row, column).setText(local_original_cell_values[(row, column)])
+                return
 
-        data = {'address': self.table.item(row, 2).text(), 'port': self.table.item(row, 3).text() if self.table.item(row, 3) else ''}
-        if self.is_row_exists(data, ignore_row=row):
-            self.table.item(row, column).setText(self.original_cell_values[(row, column)])
-        else:
-            self.original_cell_values[(row, column)] = self.table.item(row, column).text()
+        with local_original_cell_values_lock:
+            local_original_cell_values[(row, column)] = self.table.item(row, column).text()
 
     def parse_link(self, url):
         
         def _make_pars(protocol, address, port, user, password):
             if user:
                 return {
-                    'protocol': protocol,
-                    'address': address,
-                    'port': port,
-                    'user': user,
-                    'password': password
+                    'Protocol': protocol,
+                    'Address': address,
+                    'Port': port,
+                    'User': user,
+                    'Password': password
                 }
             return {
-                    'protocol': protocol,
-                    'address': address,
-                    'port': port,
+                    'Protocol': protocol,
+                    'Address': address,
+                    'Port': port,
                 }
 
         try:
@@ -167,19 +241,36 @@ class LocalTab(QWidget):
         except Exception as e:
             print(str(e))
 
+    def reload_original_values(self):
+        with local_original_cell_values_lock:
+            local_original_cell_values.clear()
+        self.update_original_values(0)
+
     def reload_rows(self):
-        for row in reversed(range(self.table.rowCount())):
-            self.table.removeRow(row)
+        with local_original_cell_values_lock:
+            for row in reversed(range(self.table.rowCount())):
+                self.table.removeRow(row)
+            local_original_cell_values.clear()
+
         self.load_data_from_file()
 
-    def save_data_to_file_local(self):
-        with open("local.txt", "w") as file:
-            for row in range(self.table.rowCount()):
-                protocol, address, port, user, password = (self.table.item(row, col).text() if self.table.item(row, col) else '' for col in range(1, 6))
-                line = f"{protocol}://{address}:{port}"
-                if user and password:
-                    line += f"@{user}:{password}"
-                file.write(line + '\n')
+    def save_data_to_file(self):
+        with local_original_cell_values_lock:
+            with open('local.txt', 'w') as file:
+                for row in range(int(len(local_original_cell_values)/5)):
+                    row_data = {
+                        'Protocol': local_original_cell_values.get((row, 1), ''),
+                        'Address': local_original_cell_values.get((row, 2), ''),
+                        'Port': local_original_cell_values.get((row, 3), ''),
+                        'User': local_original_cell_values.get((row, 4), ''),
+                        'Password': local_original_cell_values.get((row, 5), ''),
+                    }
+                    if not self.is_row_data_valid(row_data):
+                        continue
+                    line = f'{row_data["Protocol"]}://{row_data["Address"]}:{row_data["Port"]}'
+                    if row_data["User"] and row_data["Password"]:
+                        line += f'@{row_data["User"]}:{row_data["Password"]}'
+                    file.write(line + '\n')
 
     def set_protocol(self, row, column, protocol):
         item = QTableWidgetItem(protocol)
@@ -202,7 +293,7 @@ class LocalTab(QWidget):
         top_layout.addWidget(button_reload)
         top_layout.addStretch()
         button_save = QPushButton('Save')
-        button_save.clicked.connect(self.save_data_to_file_local)
+        button_save.clicked.connect(self.save_data_to_file)
         top_layout.addWidget(button_save)
 
         middle_layout = QHBoxLayout()
@@ -211,6 +302,11 @@ class LocalTab(QWidget):
         middle_layout.addWidget(self.table)
         header_labels = self.columns
         self.table.setHorizontalHeaderLabels(header_labels)
+        self.table.verticalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)
+        self.table.setColumnWidth(0, 50)
+        for column in range(1, self.table.columnCount()):
+            self.table.horizontalHeader().setSectionResizeMode(column, QHeaderView.ResizeMode.ResizeToContents)
         self.table.cellClicked.connect(self.cell_was_clicked)
         self.table.cellChanged.connect(self.on_cell_changed)
         self.load_data_from_file()
@@ -224,3 +320,10 @@ class LocalTab(QWidget):
         menu.addAction(action_socks5)
         menu.addAction(action_http)
         menu.popup(QCursor.pos())
+
+    def update_original_values(self, start_row):
+        with local_original_cell_values_lock:
+            for row in range(start_row, self.table.rowCount()):
+                for col in range(1, self.table.columnCount()):
+                    cell_value = self.table.item(row, col).text() if self.table.item(row, col) else ''
+                    local_original_cell_values[(row, col)] = cell_value

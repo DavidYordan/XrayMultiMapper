@@ -1,0 +1,5 @@
+{
+    "access": "log.log",
+    "error": "error.log",
+    "loglevel": "warning"
+}

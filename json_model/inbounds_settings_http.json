@@ -1,0 +1,11 @@
+{
+    "timeout": 0,
+    "accounts": [
+        {
+            "user": "",
+            "pass": ""
+        }
+    ],
+    "allowTransparent": false,
+    "userLevel": 0
+}

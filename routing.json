@@ -1,0 +1,50 @@
+[
+    {
+        "Inbounds": "0.0.0.0:30001",
+        "Outbounds": [
+            "\ud83c\uddef\ud83c\uddf5 \u65e5\u672c 02:litmm.bygcloud.xyz:24002",
+            "\ud83c\uddf8\ud83c\uddec \u65b0\u52a0\u5761 02:litmm.bygcloud.xyz:23002",
+            "192.168.1.2:30001"
+        ]
+    },
+    {
+        "Inbounds": "0.0.0.0:30003\n0.0.0.0:30004",
+        "Outbounds": [
+            "\ud83c\uddf8\ud83c\uddec \u65b0\u52a0\u5761 03:litmm.bygcloud.xyz:23003",
+            "192.168.1.2:30003"
+        ]
+    },
+    {
+        "Inbounds": "0.0.0.0:30005",
+        "Outbounds": [
+            "192.168.1.2:30007",
+            "192.168.1.2:30008",
+            "192.168.1.2:30009"
+        ]
+    },
+    {
+        "Inbounds": "0.0.0.0:30009\n0.0.0.0:30010",
+        "Outbounds": [
+            "\ud83c\uddf9\ud83c\uddfc \u53f0\u6e7e 01:litmm.bygcloud.xyz:22001",
+            "\ud83c\uddfa\ud83c\uddf8 \u7f8e\u56fd 01:litmm.bygcloud.xyz:26001"
+        ]
+    },
+    {
+        "Inbounds": "0.0.0.0:30016",
+        "Outbounds": [
+            "\ud83c\udde9\ud83c\uddea \u5fb7\u56fd:litmm.bygcloud.xyz:27004"
+        ]
+    },
+    {
+        "Inbounds": "0.0.0.0:30017",
+        "Outbounds": [
+            "\ud83c\udde8\ud83c\uddf1 \u667a\u5229:litmm.bygcloud.xyz:27002"
+        ]
+    },
+    {
+        "Inbounds": "0.0.0.0:30018",
+        "Outbounds": [
+            "\ud83c\uddf8\ud83c\uddec \u65b0\u52a0\u5761 03:litmm.bygcloud.xyz:23003"
+        ]
+    }
+]

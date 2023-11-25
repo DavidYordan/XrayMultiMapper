@@ -1,0 +1,14 @@
+{
+    "type": "field",
+    "domain": [],
+    "ip": [],
+    "port": "",
+    "network": "",
+    "source": [],
+    "user": [],
+    "inboundTag": [],
+    "protocol":[],
+    "attrs": "",
+    "outboundTag": "",
+    "balancerTag": ""
+}

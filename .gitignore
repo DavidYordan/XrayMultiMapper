@@ -1,8 +1,7 @@
 __pycache__/
 env/
-xray/
-chain.txt
+*.exe
 local.txt
 proxy.txt
 routing.txt
-*.json
+config.json

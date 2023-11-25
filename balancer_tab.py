@@ -3,7 +3,7 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QAction, QCursor
 from PyQt6.QtWidgets import QVBoxLayout, QHBoxLayout, QPushButton, QTableWidgetItem, QTableWidget, QCheckBox, QMenu, QWidget
 
-class ChainTab(QWidget):
+class BalancerTab(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.columns = ['Select', 'Protocol', 'Address', 'Port', 'User', 'Password']

@@ -15,7 +15,7 @@ The tool is under active development, with plans to expand features and protocol
 ## Setup Instructions
 
 1. Download 'xray/xray.exe' from the [Xray-core releases on GitHub](https://github.com/XTLS/Xray-core/releases).
-2. Download 'v2ray/v2ray.exe' from the [V2Ray releases on GitHub](https://github.com/v2ray/v2ray-core/releases).
+2. Download 'v2ray/v2ray.exe' from the [v2Ray-core releases on GitHub](https://github.com/v2ray/v2ray-core/releases).
 3. Unzip and place it in the tool's working directory.
 4. Rename the file as needed to match your configuration setup.
 

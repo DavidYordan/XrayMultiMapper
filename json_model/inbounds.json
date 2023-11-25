@@ -1,0 +1,17 @@
+{
+    "port": 0,
+    "listen": "0.0.0.0",
+    "protocol": "socks",
+    "settings": {},
+    "streamSettings": {},
+    "tag": "tag",
+    "sniffing": {
+        "enabled": false,
+        "destOverride": ["http", "tls"]
+    },
+    "allocate": {
+        "strategy": "always",
+        "refresh": 5,
+        "concurrency": 3
+    }
+}
