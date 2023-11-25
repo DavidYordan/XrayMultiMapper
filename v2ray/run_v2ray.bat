@@ -14,6 +14,7 @@ if "%ERRORLEVEL%"=="0" (
 )
 
 echo Starting v2ray...
-start v2ray.exe run
+cd v2ray
+start v2ray.exe run --config config.json
 
 echo Done.

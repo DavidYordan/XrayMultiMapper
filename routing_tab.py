@@ -1,10 +1,6 @@
 import json
 import os
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import (
-    QAction,
-    QCursor
-)
 from PyQt6.QtWidgets import (
     QHBoxLayout,
     QCheckBox,
@@ -36,6 +32,8 @@ class RoutingTab(QWidget):
         super().__init__(parent)
         self.columns = ['Select', 'Inbounds', 'InitialHop', 'SecondHop', 'ThirdHop', 'FinalHop']
         self.original_cell_values = {}
+        self.inbounds_protocol_map = {'http': 'http', 'socks5': 'socks'}
+        self.outbounds_protocol_map = {'ss': 'shadowsocks', 'socks5': 'socks'}
         self.setup_ui()
 
     def add_row_routing(self, data={}):
@@ -100,14 +98,12 @@ class RoutingTab(QWidget):
                 return []
             with open('json_model/inbounds.json', 'r') as file:
                 inbound = json.load(file)
-            inbound['protocol'] = 'socks' if row['Protocol'] == 'socks5' else row['Protocol']
+            inbound['protocol'] = self.inbounds_protocol_map[row['Protocol']]
             inbound['listen'] = row['Address']
-            inbound['port'] = row['Port']
+            inbound['port'] = int(row['Port'])
             inbound['tag'] = tag
             if bool(row['User']) != bool(row['Password']):
                 return []
-            if not row['User']:
-                return [inbound]
             if inbound['protocol'] == 'http':
                 with open('json_model/inbounds_settings_http.json', 'r') as file:
                     settings = json.load(file)
@@ -117,8 +113,8 @@ class RoutingTab(QWidget):
             elif inbound['protocol'] == 'socks':
                 with open('json_model/inbounds_settings_socks.json', 'r') as file:
                     settings = json.load(file)
-                settings['accounts'][0]['user'] = row['User']
-                settings['accounts'][0]['pass'] = row['Password']
+                settings['accounts'][0]['user'] = row.get('User', '')
+                settings['accounts'][0]['pass'] = row.get('Password', '')
                 inbound['settings'] = settings
             else:
                 return []
@@ -130,23 +126,23 @@ class RoutingTab(QWidget):
                 return []
             with open('json_model/outbounds.json', 'r') as file:
                 outbound = json.load(file)
-            outbound['protocol'] = 'socks' if row['Protocol'] == 'socks5' else row['Protocol']
+            outbound['protocol'] = self.outbounds_protocol_map[row['Protocol']]
             outbound['tag'] = tag
             if through:
-                outbound['proxySettings'] = through
+                outbound['proxySettings'] = {'tag': through}
             if outbound['protocol'] == 'socks':
                 with open('json_model/outbounds_settings_socks.json', 'r') as file:
                     settings = json.load(file)
                 settings['servers'][0]['address'] = row['Address']
-                settings['servers'][0]['port'] = row['Port']
+                settings['servers'][0]['port'] = int(row['Port'])
                 settings['servers'][0]['users'][0]['user'] = row['User']
                 settings['servers'][0]['users'][0]['pass'] = row['Password']
                 outbound['settings'] = settings
-            elif outbound['protocol'] == 'ss':
-                with open('json_model/outbounds_settings_ss.json', 'r') as file:
+            elif outbound['protocol'] == 'shadowsocks':
+                with open('json_model/outbounds_settings_shadowsocks.json', 'r') as file:
                     settings = json.load(file)
                 settings['servers'][0]['address'] = row['Address']
-                settings['servers'][0]['port'] = row['Port']
+                settings['servers'][0]['port'] = int(row['Port'])
                 settings['servers'][0]['method'] = row['Encryption']
                 settings['servers'][0]['password'] = row['Password']
                 outbound['settings'] = settings

@@ -13,7 +13,8 @@ if "%ERRORLEVEL%"=="0" (
     taskkill /F /IM xray.exe
 )
 
-echo Starting v2ray...
+echo Starting xray...
+cd xray
 start xray.exe run --config config.json
 
 echo Done.

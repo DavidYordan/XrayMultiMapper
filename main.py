@@ -23,7 +23,7 @@ class V2XrayMultiMapper(QMainWindow):
     def copy_config_and_run(self, folder_name, bat_file):
         try:
             shutil.copy("config.json", f"{folder_name}/config.json")
-            subprocess.Popen([f"{folder_name}/{bat_file}"], shell=True)
+            subprocess.Popen([os.path.join(os.getcwd(), folder_name, bat_file)], shell=True)
         except Exception as e:
             print(f"Error running {folder_name}: {e}")
 
