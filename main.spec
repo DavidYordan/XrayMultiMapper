@@ -1,14 +1,16 @@
 # -*- mode: python ; coding: utf-8 -*-
 
-from PyInstaller.utils.hooks import collect_data_files
+import os
 
 block_cipher = None
 
-json_files = collect_data_files('json_model', includes=['*.json'])
+current_dir = os.getcwd()
+
+json_files = [(os.path.join(current_dir, 'json_model', '*.json'), 'json_model')]
 
 extra_files = [
-    ('v2ray/run_v2ray.bat', 'v2ray'),
-    ('xray/run_xray.bat', 'xray'),
+    (os.path.join(current_dir, 'v2ray', 'run_v2ray.bat'), 'v2ray'),
+    (os.path.join(current_dir, 'xray', 'run_xray.bat'), 'xray'),
 ]
 
 datas = json_files + extra_files
