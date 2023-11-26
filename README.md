@@ -11,13 +11,13 @@ V2XrayMultiMapper is a dynamic utility crafted for v2ray and xray users, facilit
 ## Gallery
 
 ### Image 1
-![Image 1](img/image1.jpg)
+![Image 1](img/1.png)
 
 ### Image 2
-![Image 2](img/image2.jpg)
+![Image 2](img/2.png)
 
 ### Image 3
-![Image 3](img/image3.jpg)
+![Image 3](img/3.png)
 
 ## Future Development
 
