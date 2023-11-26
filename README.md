@@ -8,6 +8,14 @@ V2XrayMultiMapper is a dynamic utility crafted for v2ray and xray users, facilit
 - **Chained Proxy Support**: Create multi-layered proxy chains, optimizing security and network efficiency.
 - **Protocol Compatibility**: Supports socks5 and http protocol for entry points, and both shadowsocks and socks5 for exit points.
 
+## Protocol Support
+
+### Inbound Protocols
+- Currently, V2XrayMultiMapper supports only **HTTP** and **SOCKS5** protocols for inbound connections.
+
+### Outbound Protocols
+- For outbound connections, the tool currently supports **Shadowsocks** and **SOCKS5** protocols.
+
 ## Gallery
 
 ### Image 1
