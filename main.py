@@ -17,7 +17,6 @@ from PyQt6.QtWidgets import (
     QWidget
 )
 
-# from balancer_tab import BalancerTab
 from local_tab import LocalTab
 from proxy_tab import ProxyTab
 from routing_tab import RoutingTab
@@ -80,7 +79,6 @@ class V2XrayMultiMapper(QMainWindow):
         self.tab_left.addTab(self.local_tab, 'Local')
         self.proxy_tab = ProxyTab(self.tab_left)
         self.tab_left.addTab(self.proxy_tab, 'Proxy')
-        # self.tab_left.addTab(BalancerTab(self.tab_left), 'Balancer')
 
         self.tab_right = QTabWidget()
         splitter.addWidget(self.tab_right)

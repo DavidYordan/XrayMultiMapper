@@ -270,14 +270,14 @@ class RoutingTab(QWidget):
             for idx, tag in enumerate(tags):
                 if idx:
                     if tag in need_through_dict and tags[idx-1] != need_through_dict[tag]:
-                        QMessageBox.warning(None, 'Error!', f'outbounds标签冲突: {tag}')
+                        QMessageBox.warning(None, 'Error!', f'Conflict in "outbounds" tag: {tag}')
                         return {}, set()
                     need_through_set.add(tag)
                     need_through_dict[tag] = tags[idx-1]
                 else:
                     no_need_through_set.add(tag)
         if need_through_set & no_need_through_set:
-            QMessageBox.warning(None, 'Error!', f'outbounds标签冲突: {need_through_set & no_need_through_set}')
+            QMessageBox.warning(None, 'Error!', f'Conflict in "outbounds" tags: {need_through_set & no_need_through_set}')
             return {}, set()
         return need_through_dict, no_need_through_set
 
