@@ -28,4 +28,4 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         name: V2XrayMultiMapper.exe
-        path: dist/V2XrayMultiMapper.exe
+        path: dist/main.exe
