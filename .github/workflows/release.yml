@@ -25,6 +25,11 @@ jobs:
     - name: Build EXE
       run: pyinstaller main.spec
 
+    - name: Zip the EXE
+      run: |
+        Compress-Archive -Path ./dist/V2XrayMultiMapper.exe -DestinationPath ./dist/V2XrayMultiMapper.zip
+
+
     - name: Create Release
       id: create_release
       uses: actions/create-release@v1
@@ -42,6 +47,6 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./dist/V2XrayMultiMapper.exe
-        asset_name: V2XrayMultiMapper.exe
-        asset_content_type: application/octet-stream
+        asset_path: ./dist/V2XrayMultiMapper.zip
+        asset_name: V2XrayMultiMapper.zip
+        asset_content_type: application/zip
