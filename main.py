@@ -25,16 +25,21 @@ from routing_tab import RoutingTab
 class V2XrayMultiMapper(QMainWindow):
     def __init__(self):
         super().__init__()
+        try:
+            self.base_path = sys._MEIPASS
+        except Exception:
+            self.base_path = os.path.abspath(".")
         self.setWindowTitle("V2XrayMultiMapper")
-        self.setWindowIcon(QIcon('img/logo.ico'))
+        self.setWindowIcon(QIcon(os.path.join(self.base_path, 'img', 'logo.ico')))
         self.resize(1040, 620)
         self.create_menu()
         self.create_main_panel()
 
     def copy_config_and_run(self, folder_name, bat_file):
         try:
-            shutil.copy("config.json", f"{folder_name}/config.json")
-            subprocess.Popen([os.path.join(os.getcwd(), folder_name, bat_file)], shell=True)
+            shutil.copy('config.json', os.path.join(folder_name, 'config.json'))
+            shutil.copy(os.path.join(self.base_path, folder_name, bat_file), os.path.join(folder_name, bat_file))
+            subprocess.Popen([os.path.join(folder_name, bat_file)], shell=True)
         except Exception as e:
             print(f"Error running {folder_name}: {e}")
 
