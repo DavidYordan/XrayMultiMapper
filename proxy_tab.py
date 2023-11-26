@@ -89,7 +89,7 @@ class ProxyTab(QWidget):
             elif remain == 3:
                 text += '='
             return base64.urlsafe_b64decode(text).decode()
-        except Exception as e:
+        except:
             return ''
 
     def cell_was_clicked(self, row, column):
@@ -208,7 +208,7 @@ class ProxyTab(QWidget):
 
     def parse_link(self, url):
         try:
-            if '://' not in url:
+            if url.count('://') != 1:
                 return
             protocol, rest = url.split('://')
             if protocol == 'socks5':
@@ -227,7 +227,10 @@ class ProxyTab(QWidget):
             match = re.match(r'(?P<params>.+)@(?P<server>[^:]+):(?P<port>\d+)(?:#(?P<remarks>.+))?', rest)
             if not match:
                 return
-            method, password = self.base64_decode(match.group('params')).split(':')
+            method_password = self.base64_decode(match.group('params'))
+            if method_password.count(':') != 1:
+                return
+            method, password = method_password.split(':')
             if not method or not password:
                 return
             server = match.group('server')
@@ -306,11 +309,12 @@ class ProxyTab(QWidget):
             res = requests.get(source, headers=self.headers)
             if res.status_code != 200:
                 return
-            if '://' in res.text:
-                url_list = res.text.split('\n')
-            else:
-                res_decode = self.base64_decode(res.text)
-                url_list = res_decode.split('\n')
+            urls = res.text
+            if '://' not in urls:
+                urls = self.base64_decode(urls)
+            if '://' not in urls:
+                return
+            url_list = urls.split('\n')
             for url in url_list:
                 self.parse_link(url)
         except Exception as e:

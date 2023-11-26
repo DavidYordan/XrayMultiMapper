@@ -1,13 +1,10 @@
 {
     "servers": [
         {
-            "email": "",
             "address": "",
             "port": 0,
             "method": "",
-            "password": "",
-            "ota": false,
-            "level": 0
+            "password": ""
         }
     ]
 }

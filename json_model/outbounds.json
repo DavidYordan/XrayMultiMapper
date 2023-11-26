@@ -1,8 +1,5 @@
 {
-    "sendThrough": "0.0.0.0",
     "protocol": "socks",
     "settings": {},
-    "tag": "tag",
-    "streamSettings": {},
-    "mux": {}
+    "tag": "tag"
   }

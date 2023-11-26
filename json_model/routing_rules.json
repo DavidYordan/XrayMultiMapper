@@ -1,13 +1,5 @@
 {
     "type": "field",
-    "domain": [],
-    "ip": [],
-    "port": "",
-    "network": "",
-    "source": [],
-    "user": [],
     "inboundTag": [],
-    "protocol":[],
-    "outboundTag": "",
-    "balancerTag": ""
+    "outboundTag": ""
 }
