@@ -1,16 +1,8 @@
 # -*- mode: python ; coding: utf-8 -*-
 
-import os
-import sys
 from PyInstaller.utils.hooks import collect_data_files
-from PyInstaller.__main__ import PyiBlockCipher
-import random
-import string
 
-def generate_random_key(length=16):
-    return ''.join(random.choices(string.ascii_letters + string.digits, k=length))
-
-block_cipher = PyiBlockCipher(key=generate_random_key())
+block_cipher = None
 
 json_files = collect_data_files('json_model', includes=['*.json'])
 
