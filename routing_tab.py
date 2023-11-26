@@ -162,7 +162,7 @@ class RoutingTab(QWidget):
         need_through_dict, no_need_through_set =  self.is_outbounds_data_valid(routing_data)
         if not need_through_dict and not no_need_through_set:
             return
-        with open('json_model/config.json', 'r') as file:
+        with open('json_model/main.json', 'r') as file:
             config = json.load(file)
         with open('json_model/log.json', 'r') as file:
             config['log'] = json.load(file)
