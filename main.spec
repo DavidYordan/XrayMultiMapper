@@ -1,25 +1,13 @@
 # -*- mode: python ; coding: utf-8 -*-
 
-import os
 
 block_cipher = None
-
-current_dir = os.getcwd()
-
-json_files = [(os.path.join(current_dir, 'json_model', '*.json'), 'json_model')]
-
-extra_files = [
-    (os.path.join(current_dir, 'v2ray', 'run_v2ray.bat'), 'v2ray'),
-    (os.path.join(current_dir, 'xray', 'run_xray.bat'), 'xray'),
-]
-
-datas = json_files + extra_files
 
 a = Analysis(
     ['main.py'],
     pathex=[],
     binaries=[],
-    datas=datas,
+    datas=[],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
@@ -54,5 +42,5 @@ exe = EXE(
     codesign_identity=None,
     entitlements_file=None,
     version='',
-    icon='img/logo.ico',
+    icon='img/V2XrayMultiMapper.ico',
 )

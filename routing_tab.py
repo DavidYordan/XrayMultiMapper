@@ -97,7 +97,7 @@ class RoutingTab(QWidget):
         def _build_inbound(tag, row):
             if not row:
                 return []
-            with open(self.resource_path('json_model/inbounds.json'), 'r') as file:
+            with open('json_model/inbounds.json', 'r') as file:
                 inbound = json.load(file)
             inbound['protocol'] = self.inbounds_protocol_map[row['Protocol']]
             inbound['listen'] = row['Address']
@@ -106,13 +106,13 @@ class RoutingTab(QWidget):
             if bool(row['User']) != bool(row['Password']):
                 return []
             if inbound['protocol'] == 'http':
-                with open(self.resource_path('json_model/inbounds_settings_http.json'), 'r') as file:
+                with open('json_model/inbounds_settings_http.json', 'r') as file:
                     settings = json.load(file)
                 settings['accounts'][0]['user'] = row['User']
                 settings['accounts'][0]['pass'] = row['Password']
                 inbound['settings'] = settings
             elif inbound['protocol'] == 'socks':
-                with open(self.resource_path('json_model/inbounds_settings_socks.json'), 'r') as file:
+                with open('json_model/inbounds_settings_socks.json', 'r') as file:
                     settings = json.load(file)
                 settings['accounts'][0]['user'] = row.get('User', '')
                 settings['accounts'][0]['pass'] = row.get('Password', '')
@@ -125,14 +125,14 @@ class RoutingTab(QWidget):
             row = proxy_data.get(tag, '')
             if not row:
                 return []
-            with open(self.resource_path('json_model/outbounds.json'), 'r') as file:
+            with open('json_model/outbounds.json', 'r') as file:
                 outbound = json.load(file)
             outbound['protocol'] = self.outbounds_protocol_map[row['Protocol']]
             outbound['tag'] = tag
             if through:
                 outbound['proxySettings'] = {'tag': through}
             if outbound['protocol'] == 'socks':
-                with open(self.resource_path('json_model/outbounds_settings_socks.json'), 'r') as file:
+                with open('json_model/outbounds_settings_socks.json', 'r') as file:
                     settings = json.load(file)
                 settings['servers'][0]['address'] = row['Address']
                 settings['servers'][0]['port'] = int(row['Port'])
@@ -140,7 +140,7 @@ class RoutingTab(QWidget):
                 settings['servers'][0]['users'][0]['pass'] = row['Password']
                 outbound['settings'] = settings
             elif outbound['protocol'] == 'shadowsocks':
-                with open(self.resource_path('json_model/outbounds_settings_shadowsocks.json'), 'r') as file:
+                with open('json_model/outbounds_settings_shadowsocks.json', 'r') as file:
                     settings = json.load(file)
                 settings['servers'][0]['address'] = row['Address']
                 settings['servers'][0]['port'] = int(row['Port'])
@@ -150,7 +150,7 @@ class RoutingTab(QWidget):
             return [outbound]
         
         def _build_routing_rule(row):
-            with open(self.resource_path('json_model/routing_rules.json'), 'r') as file:
+            with open('json_model/routing_rules.json', 'r') as file:
                 rule = json.load(file)
             rule['inboundTag'] = row.get('Inbounds', '').split('\n')
             outbounds = row.get('Outbounds', [])
@@ -163,11 +163,11 @@ class RoutingTab(QWidget):
         need_through_dict, no_need_through_set =  self.is_outbounds_data_valid(routing_data)
         if not need_through_dict and not no_need_through_set:
             return
-        with open(self.resource_path('json_model/main.json'), 'r') as file:
+        with open('json_model/main.json', 'r') as file:
             config = json.load(file)
-        with open(self.resource_path('json_model/log.json'), 'r') as file:
+        with open('json_model/log.json', 'r') as file:
             config['log'] = json.load(file)
-        with open(self.resource_path('json_model/routing.json'), 'r') as file:
+        with open('json_model/routing.json', 'r') as file:
             config['routing'] = json.load(file)
         
         for row in routing_data:
@@ -338,14 +338,6 @@ class RoutingTab(QWidget):
         for row in reversed(range(self.table.rowCount())):
             self.table.removeRow(row)
         self.load_data_from_file()
-
-    def resource_path(self, relative_path):
-        try:
-            base_path = sys._MEIPASS
-        except Exception:
-            base_path = os.path.abspath(".")
-
-        return os.path.join(base_path, relative_path)
 
     def save_data_to_file(self):
         table_data = self.extract_table_data()

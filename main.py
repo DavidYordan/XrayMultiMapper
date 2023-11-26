@@ -11,6 +11,7 @@ from PyQt6.QtWidgets import (
     QApplication,
     QHBoxLayout,
     QMainWindow,
+    QMessageBox,
     QSplitter,
     QStyleFactory,
     QTabWidget,
@@ -21,27 +22,14 @@ from local_tab import LocalTab
 from proxy_tab import ProxyTab
 from routing_tab import RoutingTab
 
-
 class V2XrayMultiMapper(QMainWindow):
     def __init__(self):
         super().__init__()
-        try:
-            self.base_path = sys._MEIPASS
-        except Exception:
-            self.base_path = os.path.abspath(".")
         self.setWindowTitle("V2XrayMultiMapper")
-        self.setWindowIcon(QIcon(os.path.join(self.base_path, 'img', 'logo.ico')))
+        self.setWindowIcon(QIcon('img/logo.ico'))
         self.resize(1040, 620)
         self.create_menu()
         self.create_main_panel()
-
-    def copy_config_and_run(self, folder_name, bat_file):
-        try:
-            shutil.copy('config.json', os.path.join(folder_name, 'config.json'))
-            shutil.copy(os.path.join(self.base_path, folder_name, bat_file), os.path.join(folder_name, bat_file))
-            subprocess.Popen([os.path.join(folder_name, bat_file)], shell=True)
-        except Exception as e:
-            print(f"Error running {folder_name}: {e}")
 
     def create_menu(self):
         menubar = self.menuBar()
@@ -49,9 +37,9 @@ class V2XrayMultiMapper(QMainWindow):
         action_1_1 = QAction('Save Build', self)
         action_1_1.triggered.connect(self.save_and_build)
         action_1_2 = QAction('Run V2ray', self)
-        action_1_2.triggered.connect(self.run_v2ray)
+        action_1_2.triggered.connect(lambda: self.run_ray('v2ray'))
         action_1_3 = QAction('Run Xray', self)
-        action_1_3.triggered.connect(self.run_xray)
+        action_1_3.triggered.connect(lambda: self.run_ray('xray'))
         action_1_4 = QAction('Stop', self)
         action_1_4.triggered.connect(self.stop_ray)
         menu_1.addActions([action_1_1, action_1_2, action_1_3, action_1_4])
@@ -93,11 +81,14 @@ class V2XrayMultiMapper(QMainWindow):
 
         splitter.setSizes([300, 300])
 
-    def run_v2ray(self):
-        self.copy_config_and_run("v2ray", "run_v2ray.bat")
+    def run_ray(self, ray_name):
+        self.stop_ray()
+        if not os.path.exists('config.json'):
+            QMessageBox.warning(None, 'Error!', 'Please build config first')
+            return
 
-    def run_xray(self):
-        self.copy_config_and_run("xray", "run_xray.bat")
+        shutil.copy('config.json', f'{ray_name}/config.json')
+        subprocess.Popen(['start', f'{ray_name}.exe', 'run', '--config', 'config.json'], shell=True, cwd=ray_name)
 
     def save_and_build(self):
         self.local_tab.save_data_to_file()

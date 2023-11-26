@@ -22,13 +22,15 @@ jobs:
         pip install pyinstaller
         pip install -r requirements.txt
 
-    - name: Build EXE
+    - name: Build Secondary EXE (V2XrayMultiMapper)
       run: pyinstaller main.spec
 
-    - name: Zip the EXE
-      run: |
-        Compress-Archive -Path ./dist/V2XrayMultiMapper.exe -DestinationPath ./dist/V2XrayMultiMapper.zip
+    - name: Build Primary EXE (V2XrayResourceExtractor)
+      run: pyinstaller bootstrap.spec
 
+    - name: Zip the Primary EXE
+      run: |
+        Compress-Archive -Path ./dist/V2XrayResourceExtractor.exe -DestinationPath ./dist/V2XrayResourceExtractor.zip
 
     - name: Create Release
       id: create_release
@@ -41,12 +43,12 @@ jobs:
         draft: false
         prerelease: false
 
-    - name: Upload Release Asset
+    - name: Upload Release Asset (V2XrayResourceExtractor)
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./dist/V2XrayMultiMapper.zip
-        asset_name: V2XrayMultiMapper.zip
+        asset_path: ./dist/V2XrayResourceExtractor.zip
+        asset_name: V2XrayResourceExtractor.zip
         asset_content_type: application/zip
