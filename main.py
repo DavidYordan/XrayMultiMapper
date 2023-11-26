@@ -3,8 +3,19 @@ import shutil
 import subprocess
 import sys
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QAction
-from PyQt6.QtWidgets import QApplication, QMainWindow, QTabWidget, QHBoxLayout, QWidget, QSplitter, QStyleFactory
+from PyQt6.QtGui import (
+    QAction,
+    QIcon
+)
+from PyQt6.QtWidgets import (
+    QApplication,
+    QHBoxLayout,
+    QMainWindow,
+    QSplitter,
+    QStyleFactory,
+    QTabWidget,
+    QWidget
+)
 
 # from balancer_tab import BalancerTab
 from local_tab import LocalTab
@@ -16,6 +27,7 @@ class V2XrayMultiMapper(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("V2XrayMultiMapper")
+        self.setWindowIcon(QIcon('img/logo.png'))
         self.resize(1040, 620)
         self.create_menu()
         self.create_main_panel()
@@ -30,13 +42,13 @@ class V2XrayMultiMapper(QMainWindow):
     def create_menu(self):
         menubar = self.menuBar()
         menu_1 = menubar.addMenu('Menu')
-        action_1_1 = QAction('Save & Build', self)
+        action_1_1 = QAction('Save Build', self)
         action_1_1.triggered.connect(self.save_and_build)
-        action_1_2 = QAction('run v2ray', self)
+        action_1_2 = QAction('Run V2ray', self)
         action_1_2.triggered.connect(self.run_v2ray)
-        action_1_3 = QAction('run xray', self)
+        action_1_3 = QAction('Run Xray', self)
         action_1_3.triggered.connect(self.run_xray)
-        action_1_4 = QAction('stop', self)
+        action_1_4 = QAction('Stop', self)
         action_1_4.triggered.connect(self.stop_ray)
         menu_1.addActions([action_1_1, action_1_2, action_1_3, action_1_4])
 

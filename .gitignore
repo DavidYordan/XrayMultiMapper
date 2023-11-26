@@ -5,5 +5,5 @@ env/
 *.log
 local.txt
 proxy.txt
-routing.txt
+routing.json
 config.json
