@@ -22,7 +22,7 @@ jobs:
         pip install -r requirements.txt
 
     - name: Build EXE
-      run: pyinstaller main.py --onefile --icon=img/logo.png
+      run: pyinstaller main.py --onefile --icon=img/logo.ico
 
     - name: Upload EXE
       uses: actions/upload-artifact@v2
