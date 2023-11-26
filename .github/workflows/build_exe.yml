@@ -22,10 +22,10 @@ jobs:
         pip install -r requirements.txt
 
     - name: Build EXE
-      run: pyinstaller main.py --onefile -w --icon=img/logo.ico
+      run: pyinstaller main.spec
 
     - name: Upload EXE
       uses: actions/upload-artifact@v3
       with:
         name: V2XrayMultiMapper.exe
-        path: dist/main.exe
+        path: dist/V2XrayMultiMapper.exe
