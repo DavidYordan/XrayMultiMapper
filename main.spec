@@ -6,11 +6,18 @@ block_cipher = None
 
 json_files = collect_data_files('json_model', includes=['*.json'])
 
+extra_files = [
+    ('v2ray/run_v2ray.bat', 'v2ray'),
+    ('xray/run_xray.bat', 'xray'),
+]
+
+datas = json_files + extra_files
+
 a = Analysis(
     ['main.py'],
     pathex=[],
     binaries=[],
-    datas=json_files,
+    datas=datas,
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
