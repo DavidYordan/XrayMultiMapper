@@ -19,6 +19,16 @@ V2XrayMultiMapper is a dynamic utility crafted for v2ray and xray users, facilit
 
 As of now, V2XrayMultiMapper is focused on creating a clean and efficient multi-entry to multi-exit environment. To maintain this simplicity, **traffic routing rules have been omitted**. While this offers a streamlined experience, users requiring advanced routing capabilities may need to wait for future updates or consider additional tools. The project may explore adding these features based on user feedback and the evolving needs of the community.
 
+## Usage Scenarios and Configuration
+
+### Primary Use Case: Local Server Proxy
+`V2XrayMultiMapper` was initially developed to address scenarios where ISP proxies (HTTP, SOCKS5) are not directly usable and require other proxies as intermediaries to route traffic effectively. It is primarily intended to function as a local server proxy, rather than a direct client-side tool.
+
+#### Example Configuration:
+- Suppose `V2XrayMultiMapper` is running on a host machine within a local network (e.g., `192.168.1.2`) and is set to listen on `0.0.0.0:30001`.
+- On a different machine in the same network (e.g., `192.168.1.3`), you can configure a standard proxy client to route traffic through `192.168.1.2:30001`.
+- This setup allows the client machine to utilize the ISP proxy via `V2XrayMultiMapper`, effectively bypassing direct usage restrictions.
+
 ## Gallery
 
 ### Image 1
