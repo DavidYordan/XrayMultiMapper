@@ -25,10 +25,6 @@ from routing_tab import RoutingTab
 class V2XrayMultiMapper(QMainWindow):
     def __init__(self):
         super().__init__()
-        
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        os.chdir(current_dir)
-
         self.setWindowTitle("V2XrayMultiMapper")
         self.setWindowIcon(QIcon('img/V2XrayMultiMapper.ico'))
         self.resize(1040, 620)
