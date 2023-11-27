@@ -15,6 +15,10 @@ V2XrayMultiMapper is a dynamic utility crafted for v2ray and xray users, facilit
 ### Outbound Protocols
 - For outbound connections, the tool currently supports **Shadowsocks** and **SOCKS5** protocols.
 
+## Current Focus and Limitations
+
+As of now, V2XrayMultiMapper is focused on creating a clean and efficient multi-entry to multi-exit environment. To maintain this simplicity, **traffic routing rules have been omitted**. While this offers a streamlined experience, users requiring advanced routing capabilities may need to wait for future updates or consider additional tools. The project may explore adding these features based on user feedback and the evolving needs of the community.
+
 ## Gallery
 
 ### Image 1
