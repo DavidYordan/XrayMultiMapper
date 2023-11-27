@@ -78,7 +78,8 @@ def main():
     
     create_shortcut_with_vbscript(exe_path, 'V2XrayMultiMapper', get_desktop_path())
 
-    subprocess.Popen(rf'explorer "{working_dir}"')
+    explorer_path = os.path.normpath(os.path.join(working_dir, 'V2XrayMultiMapper'))
+    subprocess.Popen(f'explorer "{explorer_path}"')
 
 if __name__ == '__main__':
     main()
