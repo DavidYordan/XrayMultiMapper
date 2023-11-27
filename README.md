@@ -6,7 +6,6 @@ V2XrayMultiMapper is a dynamic utility crafted for v2ray and xray users, facilit
 
 - **Multi-Entry and Multi-Exit Configuration**: Simplify the setup of multiple entry and exit points, allowing for diverse network routing strategies.
 - **Chained Proxy Support**: Create multi-layered proxy chains, optimizing security and network efficiency.
-- **Protocol Compatibility**: Supports socks5 and http protocol for entry points, and both shadowsocks and socks5 for exit points.
 
 ## Protocol Support
 
@@ -27,15 +26,25 @@ V2XrayMultiMapper is a dynamic utility crafted for v2ray and xray users, facilit
 ### Image 3
 ![Image 3](img/3.png)
 
+## Core Versions Included
+
+The V2XrayResourceExtractor, which is part of this tool, already includes:
+- v2ray-core version **v4.31.0**
+- Xray-core version **v1.8.6**
+
+If you need to update these core components to a newer version, you can download the desired version of `v2ray.exe` and `xray.exe` from their respective official repositories. Replace the existing files in the tool's working directory with the downloaded versions.
+
+### Updating Core Versions
+1. Download 'xray/xray.exe' from the [Xray-core releases on GitHub](https://github.com/XTLS/Xray-core/releases).
+2. Download 'v2ray/v2ray.exe' from the [v2Ray-core releases on GitHub](https://github.com/v2ray/v2ray-core/releases).
+3. Replace the existing files in the V2XrayMultiMapper's working directory with the downloaded files.
+
 ## Future Development
 
 The tool is under active development, with plans to expand features and protocol support based on community feedback and demand.
 
 ## Setup Instructions
 
-1. Download 'xray/xray.exe' from the [Xray-core releases on GitHub](https://github.com/XTLS/Xray-core/releases).
-2. Download 'v2ray/v2ray.exe' from the [v2Ray-core releases on GitHub](https://github.com/v2ray/v2ray-core/releases).
-3. Unzip and place it in the tool's working directory.
-4. Rename the file as needed to match your configuration setup.
+Follow the standard setup procedures for V2XrayMultiMapper. The tool will automatically extract and set up the included versions of v2ray-core and Xray-core.
 
 This tool is an excellent choice for those looking to easily manage complex configurations in v2ray and xray, offering a user-friendly interface to handle intricate proxy setups.
