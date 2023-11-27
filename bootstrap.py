@@ -5,7 +5,6 @@ import subprocess
 import sys
 import tempfile
 import tkinter as tk
-from ctypes import wintypes
 from tkinter import filedialog
 
 def create_directory(path):
