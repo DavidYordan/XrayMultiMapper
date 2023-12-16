@@ -1,10 +1,11 @@
 __pycache__/
-venv/
+!requirements.txt
 build/
 dist/
-*.yaml
-*.log
+logs/
+venv/
 local.txt
 proxy.txt
-routing.json
-config.json
+/*.json
+/*.txt
+/*.spec
