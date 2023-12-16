@@ -16,24 +16,27 @@ from PyQt6.QtWidgets import (
     QWidgetAction
 )
 
-from globals import (
-    local_original_cell_values,
-    local_original_cell_values_lock,
-    proxy_original_cell_values,
-    proxy_original_cell_values_lock,
-    routing_original_cell_values,
-    routing_original_cell_values_lock,
-    routing_used_inbound_options,
-    routing_used_inbound_options_lock
-)
+from globals import Globals
 
 class RoutingTab(QWidget):
-    def __init__(self, parent=None):
+    def __init__(
+            self,
+            parent,
+            highlight_inbounds_row_signal,
+            unhighlight_inbounds_row_signal,
+            highlight_outbounds_row_signal,
+            unhighlight_outbounds_row_signal
+        ):
         super().__init__(parent)
         self.columns = ['Select', 'Inbounds', 'InitialHop', 'SecondHop', 'ThirdHop', 'FinalHop']
-        self.original_cell_values = {}
+        self.highlight_inbounds_row_signal = highlight_inbounds_row_signal
+        self.highlight_outbounds_row_signal = highlight_outbounds_row_signal
         self.inbounds_protocol_map = {'http': 'http', 'socks5': 'socks'}
+        self.original_cell_values = {}
         self.outbounds_protocol_map = {'ss': 'shadowsocks', 'socks5': 'socks'}
+        self.unhighlight_inbounds_row_signal = unhighlight_inbounds_row_signal
+        self.unhighlight_outbounds_row_signal = unhighlight_outbounds_row_signal
+        self.user = 'RoutingTab'
         self.setup_ui()
 
     def add_row_routing(self, data={}):
@@ -77,21 +80,21 @@ class RoutingTab(QWidget):
                     else:
                         _set_text(insert_position, idx, '' if len(outbounds) < idx-1 else outbounds[idx-2])
             except Exception as e:
-                print(str(e))
+                Globals._Log.error(self.user, )
             finally:
                 self.table.blockSignals(False)
 
             self.update_original_values(insert_position)
 
-            with routing_used_inbound_options_lock:
+            with Globals.routing_used_inbound_options_lock:
                 for inbound in data.get('Inbounds', '').split('\n'):
                     if inbound:
-                        routing_used_inbound_options.add(inbound)
+                        Globals.routing_used_inbound_options.add(inbound)
 
         except Exception as e:
             print(str(e))
 
-    def build_config(self, local_data, proxy_data):
+    def build_config(self, inbounds_data, outbounds_data):
 
         def _build_inbound(tag, row):
             if not row:
@@ -121,7 +124,7 @@ class RoutingTab(QWidget):
             return [inbound]
         
         def _build_outbound(tag, through):
-            row = proxy_data.get(tag, '')
+            row = outbounds_data.get(tag, '')
             if not row:
                 return []
             with open('json_model/outbounds.json', 'r') as file:
@@ -129,7 +132,7 @@ class RoutingTab(QWidget):
             outbound['protocol'] = self.outbounds_protocol_map[row['Protocol']]
             outbound['tag'] = tag
             if through:
-                outbound['proxySettings'] = {'tag': through}
+                outbound['outboundsSettings'] = {'tag': through}
             if outbound['protocol'] == 'socks':
                 with open('json_model/outbounds_settings_socks.json', 'r') as file:
                     settings = json.load(file)
@@ -171,7 +174,7 @@ class RoutingTab(QWidget):
         
         for row in routing_data:
             for tag in row.get('Inbounds').split('\n'):
-                config['inbounds'].extend(_build_inbound(tag, local_data.get(tag, '')))
+                config['inbounds'].extend(_build_inbound(tag, inbounds_data.get(tag, '')))
             config['routing']['rules'].extend(_build_routing_rule(row))
 
         for tag, through in need_through_dict.items():
@@ -195,9 +198,9 @@ class RoutingTab(QWidget):
         else:
             self.show_outbounds_selection_menu(row, column)
 
-    def delete_selected_rows_local(self):
+    def delete_selected_rows_inbounds(self):
         rows_to_delete = []
-        with routing_used_inbound_options_lock:
+        with Globals.routing_used_inbound_options_lock:
             for row in reversed(range(self.table.rowCount())):
                 chk_box = self.get_checkbox(row)
                 if not chk_box:
@@ -206,7 +209,7 @@ class RoutingTab(QWidget):
                     inbounds_text = self.table.item(row, 1).text() if self.table.item(row, 1) else ''
                     for option in inbounds_text.split('\n'):
                         if option:
-                            routing_used_inbound_options.discard(option)
+                            Globals.routing_used_inbound_options.discard(option)
                     rows_to_delete.append(row)
             for row in rows_to_delete:
                 self.table.removeRow(row)
@@ -306,31 +309,31 @@ class RoutingTab(QWidget):
             current_value = self.table.item(row, column).text() if self.table.item(row, column) else ''
 
             if column == 1:
-                with routing_original_cell_values_lock:
-                    original_inbounds = routing_original_cell_values.get((row, column), '').split('\n')
+                with Globals.routing_original_cell_values_lock:
+                    original_inbounds = Globals.routing_original_cell_values.get((row, column), '').split('\n')
                     current_inbounds_set = set(filter(None, current_value.split('\n')))
 
-                    with routing_used_inbound_options_lock:
-                        if any(inbound in routing_used_inbound_options and inbound not in original_inbounds for inbound in current_inbounds_set):
-                            self.table.item(row, column).setText(routing_original_cell_values.get((row, column), ''))
+                    with Globals.routing_used_inbound_options_lock:
+                        if any(inbound in Globals.routing_used_inbound_options and inbound not in original_inbounds for inbound in current_inbounds_set):
+                            self.table.item(row, column).setText(Globals.routing_original_cell_values.get((row, column), ''))
                         else:
                             for inbound in current_inbounds_set:
                                 if inbound not in original_inbounds:
-                                    routing_used_inbound_options.add(inbound)
+                                    Globals.routing_used_inbound_options.add(inbound)
                             for inbound in original_inbounds:
                                 if inbound not in current_inbounds_set:
-                                    routing_used_inbound_options.discard(inbound)
+                                    Globals.routing_used_inbound_options.discard(inbound)
 
-                            routing_original_cell_values[(row, column)] = current_value
+                            Globals.routing_original_cell_values[(row, column)] = current_value
             else:
-                with routing_original_cell_values_lock:
-                    routing_original_cell_values[(row, column)] = current_value
+                with Globals.routing_original_cell_values_lock:
+                    Globals.routing_original_cell_values[(row, column)] = current_value
         finally:
             self.table.blockSignals(False)
 
     def reload_original_values(self):
-        with routing_original_cell_values_lock:
-            routing_original_cell_values.clear()
+        with Globals.routing_original_cell_values_lock:
+            Globals.routing_original_cell_values.clear()
         self.update_original_values(0)
 
     def reload_rows(self):
@@ -352,7 +355,7 @@ class RoutingTab(QWidget):
         button_add.clicked.connect(self.add_row_routing)
         top_layout.addWidget(button_add)
         button_delete = QPushButton('Delete')
-        button_delete.clicked.connect(self.delete_selected_rows_local)
+        button_delete.clicked.connect(self.delete_selected_rows_inbounds)
         top_layout.addWidget(button_delete)
         button_reload = QPushButton('Reload')
         button_reload.clicked.connect(self.reload_rows)
@@ -392,11 +395,11 @@ class RoutingTab(QWidget):
             new_value = '\n'.join(sorted_selections).strip()
             self.table.item(row, column).setText(new_value)
 
-            with routing_used_inbound_options_lock:
+            with Globals.routing_used_inbound_options_lock:
                 if state:
-                    routing_used_inbound_options.add(option)
+                    Globals.routing_used_inbound_options.add(option)
                 else:
-                    routing_used_inbound_options.discard(option)
+                    Globals.routing_used_inbound_options.discard(option)
 
         menu_widget = QWidget()
         menu_layout = QVBoxLayout(menu_widget)
@@ -405,10 +408,10 @@ class RoutingTab(QWidget):
         current_selections = set(current_cell_value.split('\n'))
 
         self.checkboxes = []
-        with local_original_cell_values_lock:
-            for row_index in range(int(len(local_original_cell_values)/5)):
-                option = f'{local_original_cell_values.get((row_index, 2))}:{local_original_cell_values.get((row_index, 3))}'
-                if option in routing_used_inbound_options and option not in current_selections:
+        with Globals.inbounds_original_cell_values_lock:
+            for row_index in range(int(len(Globals.inbounds_original_cell_values)/6)):
+                option = f'{Globals.inbounds_original_cell_values.get((row_index, 2))}:{Globals.inbounds_original_cell_values.get((row_index, 3))}'
+                if option in Globals.routing_used_inbound_options and option not in current_selections:
                     continue
                 checkbox = QCheckBox(option)
                 checkbox.setChecked(option in current_selections)
@@ -442,13 +445,13 @@ class RoutingTab(QWidget):
         button = QPushButton('')
         button.clicked.connect(lambda _, opt='', menu=custom_menu: _button_clicked(opt, menu))
         menu_layout.addWidget(button)
-        with proxy_original_cell_values_lock:
-            for row_index in range(int(len(proxy_original_cell_values)/7)):
-                tag = proxy_original_cell_values.get((row_index, 7)).strip()
+        with Globals.outbounds_original_cell_values_lock:
+            for row_index in range(int(len(outbounds_original_cell_values)/8)):
+                tag = outbounds_original_cell_values.get((row_index, 8)).strip()
                 if tag:
-                    option = f'{tag}:{proxy_original_cell_values.get((row_index, 2))}:{proxy_original_cell_values.get((row_index, 3))}'
+                    option = f'{tag}:{outbounds_original_cell_values.get((row_index, 2))}:{outbounds_original_cell_values.get((row_index, 3))}'
                 else:
-                    option = f'{proxy_original_cell_values.get((row_index, 2))}:{proxy_original_cell_values.get((row_index, 3))}'
+                    option = f'{outbounds_original_cell_values.get((row_index, 2))}:{outbounds_original_cell_values.get((row_index, 3))}'
                 button = QPushButton(option)
                 button.clicked.connect(lambda _, opt=option, menu=custom_menu: _button_clicked(opt, menu))
                 menu_layout.addWidget(button)
@@ -467,8 +470,8 @@ class RoutingTab(QWidget):
         custom_menu.popup(pos)
 
     def update_original_values(self, start_row):
-        with routing_original_cell_values_lock:
+        with Globals.routing_original_cell_values_lock:
             for row in range(start_row, self.table.rowCount()):
                 for col in range(1, self.table.columnCount()):
                     cell_value = self.table.item(row, col).text() if self.table.item(row, col) else ''
-                    routing_original_cell_values[(row, col)] = cell_value
+                    Globals.routing_original_cell_values[(row, col)] = cell_value
