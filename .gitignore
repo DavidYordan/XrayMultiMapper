@@ -1,11 +1,10 @@
 __pycache__/
-!requirements.txt
 build/
 dist/
-logs/
 venv/
-local.txt
-proxy.txt
-/*.json
-/*.txt
+*.log
+*.json
+*.txt
+!requirements.txt
+!json_model/**/*
 /*.spec
