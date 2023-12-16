@@ -1,0 +1,5 @@
+{
+    "domainStrategy": "AsIs",
+    "rules": [],
+    "balancers": []
+}

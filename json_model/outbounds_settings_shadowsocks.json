@@ -1,0 +1,10 @@
+{
+    "servers": [
+        {
+            "address": "",
+            "port": 0,
+            "method": "",
+            "password": ""
+        }
+    ]
+}

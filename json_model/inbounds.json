@@ -1,0 +1,7 @@
+{
+    "port": 0,
+    "listen": "0.0.0.0",
+    "protocol": "socks",
+    "settings": {},
+    "tag": "tag"
+}
