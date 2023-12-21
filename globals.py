@@ -1,3 +1,4 @@
+from contextlib import contextmanager
 from PyQt6.QtCore import QObject
 from PyQt6.QtWidgets import (
     QLabel,
@@ -12,15 +13,18 @@ class Globals(QObject):
     _log_label = QLabel()
     _Log = Logging(_log_textedit, _log_label)
     inbounds_dict = {}
-    inbounds_lock = Lock()
     inbounds_tags = set()
+    inbounds_lock = Lock()
     outbounds_dict = {}
-    outbounds_lock = Lock()
     outbounds_tags = set()
-    outbounds_tags_lock = Lock()
-    routing_original_cell_values = {}
-    routing_original_cell_values_lock = Lock()
-    routing_used_inbound_options = set()
-    routing_used_inbound_options_lock = Lock()
-    routing_used_outbound_options = set()
-    routing_used_outbound_options_lock = Lock()
+    outbounds_lock = Lock()
+
+    @contextmanager
+    def acquire(*locks):
+        for lock in locks:
+            lock.acquire()
+        try:
+            yield
+        finally:
+            for lock in reversed(locks):
+                lock.release()

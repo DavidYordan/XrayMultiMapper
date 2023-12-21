@@ -1,6 +1,9 @@
 import json
 import os
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import (
+    pyqtSignal,
+    Qt
+)
 from PyQt6.QtWidgets import (
     QHBoxLayout,
     QCheckBox,
@@ -23,8 +26,8 @@ class RoutingTab(QWidget):
             self,
             parent,
             highlight_inbounds_row_signal,
-            unhighlight_inbounds_row_signal,
             highlight_outbounds_row_signal,
+            unhighlight_inbounds_row_signal,
             unhighlight_outbounds_row_signal
         ):
         super().__init__(parent)
@@ -34,6 +37,8 @@ class RoutingTab(QWidget):
         self.inbounds_protocol_map = {'http': 'http', 'socks5': 'socks'}
         self.original_cell_values = {}
         self.outbounds_protocol_map = {'ss': 'shadowsocks', 'socks5': 'socks'}
+        self.tag_end = {}
+        self.tag_through = {}
         self.unhighlight_inbounds_row_signal = unhighlight_inbounds_row_signal
         self.unhighlight_outbounds_row_signal = unhighlight_outbounds_row_signal
         self.user = 'RoutingTab'
@@ -50,6 +55,34 @@ class RoutingTab(QWidget):
             layout.setContentsMargins(0, 0, 0, 0)
             self.table.setCellWidget(insert_position, idx, widget)
 
+        def _set_inbounds(row, inbounds):
+            text = '\n'.join(inbounds)
+            _set_text(row, 1, text)
+            with Globals.routing_used_inbound_options_lock:
+                for inbound in inbounds:
+                    if inbound not in Globals.routing_used_inbound_options.keys():
+                        Globals.routing_used_inbound_options[inbound] = []
+                    if (row, 1) not in Globals.routing_used_inbound_options[inbound]:
+                        Globals.routing_used_inbound_options[inbound].append((row, 1))
+
+        def _set_outbounds(row, outbounds):
+            col = 2
+            throughs = outbounds.get('Through')
+            if throughs:
+                for through in throughs:
+                    if not self.add_through(through):
+                        
+                    _set_text(row, col, through)
+                    col += 1
+            end = outbounds.get('End')
+            if end:
+                _set_text(row, col, end)
+            with Globals.routing_used_outbound_options_lock:
+                if outbound not in Globals.routing_used_outbound_options.keys():
+                    Globals.routing_used_outbound_options[outbound] = []
+                if (row, col) not in Globals.routing_used_outbound_options[outbound]:
+                    Globals.routing_used_outbound_options[outbound].append((row, col))
+
         def _set_text(row, col, text):
             item = QTableWidgetItem(text)
             item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -61,38 +94,27 @@ class RoutingTab(QWidget):
                     return
             else:
                 data = {}
-            inbounds_text = data.get('Inbounds', '')
+            inbounds = data.get('Inbounds', [])
+            inbounds.sort()
             outbounds = data.get('Outbounds', [])
-            if self.is_row_exists(inbounds_text):
+            if self.is_row_exists(inbounds):
                 return
-            insert_position = self.find_insert_position(inbounds_text)
+            insert_position = self.find_insert_position(inbounds)
 
             self.table.blockSignals(True)
             try:
                 self.table.insertRow(insert_position)
 
-                for idx, col in enumerate(self.columns):
-                    if col == 'Select':
-                        _make_checkbox(insert_position, idx)
-                        continue
-                    elif col == 'Inbounds':
-                        _set_text(insert_position, idx, inbounds_text)
-                    else:
-                        _set_text(insert_position, idx, '' if len(outbounds) < idx-1 else outbounds[idx-2])
+                _make_checkbox(insert_position, 0)
+                _set_inbounds(insert_position, inbounds)
+                _set_outbounds(insert_position, outbounds)
             except Exception as e:
-                Globals._Log.error(self.user, )
+                Globals._Log.error(self.user, f'Error in add_row_routing: {e}')
             finally:
                 self.table.blockSignals(False)
 
-            self.update_original_values(insert_position)
-
-            with Globals.routing_used_inbound_options_lock:
-                for inbound in data.get('Inbounds', '').split('\n'):
-                    if inbound:
-                        Globals.routing_used_inbound_options.add(inbound)
-
         except Exception as e:
-            print(str(e))
+            Globals._Log.error(self.user, f'Error in add_row_routing: {e}')
 
     def build_config(self, inbounds_data, outbounds_data):
 
@@ -219,17 +241,17 @@ class RoutingTab(QWidget):
         table_data = []
         for row in range(self.table.rowCount()):
             outbounds = []
-            for tag in [
+            for outbound in [
                 self.table.item(row, 2).text() if self.table.item(row, 2) else '',
                 self.table.item(row, 3).text() if self.table.item(row, 3) else '',
                 self.table.item(row, 4).text() if self.table.item(row, 4) else '',
                 self.table.item(row, 5).text() if self.table.item(row, 5) else ''
             ]:
-                if not tag:
+                if not outbound:
                     continue
-                outbounds.append(tag)
+                outbounds.append(outbound)
             row_data = {
-                "Inbounds": self.table.item(row, 1).text() if self.table.item(row, 1) else '',
+                "Inbounds": self.table.item(row, 1).text().split('\n') if self.table.item(row, 1) else [],
                 'Outbounds': outbounds
             }
             if not self.is_row_data_valid(row_data):
@@ -240,8 +262,9 @@ class RoutingTab(QWidget):
     def find_insert_position(self, inbounds):
         row_count = self.table.rowCount()
         for row in range(row_count):
-            row_address = self.table.item(row, 1).text()
-            if inbounds < row_address:
+            row_address = self.table.item(row, 1).text().split('\n') if self.table.item(row, 1) else []
+            row_address.sort()
+            if inbounds[0] < row_address[0]:
                 return row
         return row_count
     
@@ -253,12 +276,19 @@ class RoutingTab(QWidget):
                 return chk_box
         return None
     
+    def highlight_inbounds_row(self):
+        pass
+    
+    def highlight_outbounds_row(self):
+        pass
+    
     def is_row_exists(self, inbounds, ignore_row=None):
+        inbounds_set = set(inbounds)
         for row in range(self.table.rowCount()):
             if row == ignore_row:
                 continue
-            existing_inbounds = self.table.item(row, 1).text() if self.table.item(row, 1) else ''
-            if inbounds == existing_inbounds:
+            existing_inbounds = set(self.table.item(row, 1).text().split('\n')) if self.table.item(row, 1) else set()
+            if inbounds_set == existing_inbounds:
                 return True
         return False
     
@@ -285,9 +315,9 @@ class RoutingTab(QWidget):
         return need_through_dict, no_need_through_set
 
     def is_row_data_valid(self, row_data):
-        if not row_data.get('Inbounds'):
+        if not isinstance(row_data.get('Inbounds'), list):
             return False
-        if not row_data.get('Outbounds'):
+        if not isinstance(row_data.get('Outbounds'), list):
             return False
         return True
     
@@ -298,6 +328,8 @@ class RoutingTab(QWidget):
             routings = json.load(file)
         for routing in routings:
             self.add_row_routing(routing)
+
+    def modify_outbounds(self, method, key, )
 
     def on_cell_changed(self, row, column):
         if column == 0:
@@ -314,7 +346,7 @@ class RoutingTab(QWidget):
                     current_inbounds_set = set(filter(None, current_value.split('\n')))
 
                     with Globals.routing_used_inbound_options_lock:
-                        if any(inbound in Globals.routing_used_inbound_options and inbound not in original_inbounds for inbound in current_inbounds_set):
+                        if any(inbound in Globals.routing_used_inbound_options.keys() and inbound not in original_inbounds for inbound in current_inbounds_set):
                             self.table.item(row, column).setText(Globals.routing_original_cell_values.get((row, column), ''))
                         else:
                             for inbound in current_inbounds_set:
@@ -388,8 +420,10 @@ class RoutingTab(QWidget):
 
             if state and option not in selections:
                 selections.add(option)
+                self.highlight_inbounds_row_signal.emit(option)
             elif not state and option in selections:
                 selections.remove(option)
+                self.unhighlight_inbounds_row_signal.emit(option)
 
             sorted_selections = sorted(selections)
             new_value = '\n'.join(sorted_selections).strip()
@@ -408,9 +442,9 @@ class RoutingTab(QWidget):
         current_selections = set(current_cell_value.split('\n'))
 
         self.checkboxes = []
-        with Globals.inbounds_original_cell_values_lock:
-            for row_index in range(int(len(Globals.inbounds_original_cell_values)/6)):
-                option = f'{Globals.inbounds_original_cell_values.get((row_index, 2))}:{Globals.inbounds_original_cell_values.get((row_index, 3))}'
+        with Globals.acquire(Globals.routing_used_inbound_options_lock, Globals.inbounds_lock):
+            for key, value in Globals.inbounds_dict.items():
+                option = value.get('Tag') if value.get('Tag') else key
                 if option in Globals.routing_used_inbound_options and option not in current_selections:
                     continue
                 checkbox = QCheckBox(option)
@@ -431,12 +465,18 @@ class RoutingTab(QWidget):
         item = self.table.item(row, column)
         cell_rect = self.table.visualItemRect(item)
         pos = self.table.viewport().mapToGlobal(cell_rect.topLeft())
-        custom_menu.popup(pos)
+        custom_menu.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
+        custom_menu.exec(pos)
 
     def show_outbounds_selection_menu(self, row, column):
 
         def _button_clicked(button_text, menu):
+            old_tag = self.table.item(row, column).text() if self.table.item(row, column) else ''
+            if old_tag:
+                self.unhighlight_outbounds_row_signal.emit(old_tag)
             self.table.item(row, column).setText(button_text)
+            if button_text:
+                self.highlight_outbounds_row_signal.emit(button_text)
             menu.close()
 
         menu_widget = QWidget()
@@ -445,13 +485,9 @@ class RoutingTab(QWidget):
         button = QPushButton('')
         button.clicked.connect(lambda _, opt='', menu=custom_menu: _button_clicked(opt, menu))
         menu_layout.addWidget(button)
-        with Globals.outbounds_original_cell_values_lock:
-            for row_index in range(int(len(outbounds_original_cell_values)/8)):
-                tag = outbounds_original_cell_values.get((row_index, 8)).strip()
-                if tag:
-                    option = f'{tag}:{outbounds_original_cell_values.get((row_index, 2))}:{outbounds_original_cell_values.get((row_index, 3))}'
-                else:
-                    option = f'{outbounds_original_cell_values.get((row_index, 2))}:{outbounds_original_cell_values.get((row_index, 3))}'
+        with Globals.acquire(Globals.routing_used_outbound_options_lock, Globals.outbounds_lock):
+            for key, value in Globals.outbounds_dict.items():
+                option = value.get('Tag') if value.get('Tag') else (value.get('Remarks') if value.get('Remarks') else key)
                 button = QPushButton(option)
                 button.clicked.connect(lambda _, opt=option, menu=custom_menu: _button_clicked(opt, menu))
                 menu_layout.addWidget(button)
@@ -467,11 +503,5 @@ class RoutingTab(QWidget):
         item = self.table.item(row, column)
         cell_rect = self.table.visualItemRect(item)
         pos = self.table.viewport().mapToGlobal(cell_rect.topLeft())
-        custom_menu.popup(pos)
-
-    def update_original_values(self, start_row):
-        with Globals.routing_original_cell_values_lock:
-            for row in range(start_row, self.table.rowCount()):
-                for col in range(1, self.table.columnCount()):
-                    cell_value = self.table.item(row, col).text() if self.table.item(row, col) else ''
-                    Globals.routing_original_cell_values[(row, col)] = cell_value
+        custom_menu.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
+        custom_menu.exec(pos)

@@ -4,6 +4,7 @@ import shutil
 import subprocess
 import sys
 from PyQt6.QtCore import (
+    pyqtSignal,
     pyqtSlot,
     Qt
 )
@@ -37,6 +38,12 @@ from outbounds_tab import OutboundsTab
 from routing_tab import RoutingTab
 
 class V2XrayMultiMapper(QMainWindow):
+    highlight_inbounds_row_signal = pyqtSignal(str)
+    highlight_outbounds_row_signal = pyqtSignal(str)
+    statistics_routings_signal = pyqtSignal()
+    unhighlight_inbounds_row_signal = pyqtSignal(str)
+    unhighlight_outbounds_row_signal = pyqtSignal(str)
+    
     def __init__(self):
         super().__init__()
         self.setWindowTitle("V2XrayMultiMapper")
@@ -44,6 +51,11 @@ class V2XrayMultiMapper(QMainWindow):
         self.resize(1040, 620)
         self.create_menu()
         self.create_main_panel()
+        self.highlight_inbounds_row_signal.connect(self.inbounds_tab.handle_highlight_row)
+        self.unhighlight_inbounds_row_signal.connect(self.inbounds_tab.handle_unhighlight_row)
+        self.highlight_outbounds_row_signal.connect(self.outbounds_tab.handle_highlight_row)
+        self.unhighlight_outbounds_row_signal.connect(self.outbounds_tab.handle_unhighlight_row)
+        self.statistics_routings_signal.connect()
 
     def command(self):
         self.Command.method = 'command'
@@ -78,13 +90,11 @@ class V2XrayMultiMapper(QMainWindow):
         menu_1 = menubar.addMenu('Menu')
         action_1_1 = QAction('Save Build', self)
         action_1_1.triggered.connect(self.save_and_build)
-        action_1_2 = QAction('Run V2ray', self)
-        action_1_2.triggered.connect(lambda: self.run_ray('v2ray'))
-        action_1_3 = QAction('Run Xray', self)
-        action_1_3.triggered.connect(lambda: self.run_ray('xray'))
-        action_1_4 = QAction('Stop', self)
-        action_1_4.triggered.connect(self.stop_ray)
-        menu_1.addActions([action_1_1, action_1_2, action_1_3, action_1_4])
+        action_1_2 = QAction('Run Xray', self)
+        action_1_2.triggered.connect(lambda: self.run_xray())
+        action_1_3 = QAction('Stop Xray', self)
+        action_1_3.triggered.connect(self.stop_xray)
+        menu_1.addActions([action_1_1, action_1_2, action_1_3])
 
         ShortAlt_Q = QShortcut(QKeySequence('Alt+Q'), self)
         ShortAlt_Q.activated.connect(self.command_show_hide, Qt.ConnectionType.QueuedConnection)
@@ -115,9 +125,17 @@ class V2XrayMultiMapper(QMainWindow):
         self.tab_left = QTabWidget()
         splitter.addWidget(self.tab_left)
 
-        self.inbounds_tab = InboundsTab(self.tab_left)
+        self.inbounds_tab = InboundsTab(
+            self.tab_left,
+            self.statistics_routings_signal
+            
+        )
         self.tab_left.addTab(self.inbounds_tab, 'Inbounds')
-        self.outbounds_tab = OutboundsTab(self.tab_left)
+
+        self.outbounds_tab = OutboundsTab(
+            self.tab_left,
+            self.statistics_routings_signal
+        )
         self.tab_left.addTab(self.outbounds_tab, 'Outbounds')
 
         log_widget = QWidget()
@@ -134,36 +152,35 @@ class V2XrayMultiMapper(QMainWindow):
         self.tab_right = QTabWidget()
         splitter.addWidget(self.tab_right)
 
-        # self.routing_tab = RoutingTab(
-        #     self.tab_right,
-        #     self.inbounds_tab.highlight_row_signal,
-        #     self.inbounds_tab.unhighlight_row_signal,
-        #     self.outbounds_tab.highlight_row_signal,
-        #     self.outbounds_tab.unhighlight_row_signal,
-        # )
-        # self.tab_right.addTab(self.routing_tab, 'Routing')
+        self.routing_tab = RoutingTab(
+            self.tab_right,
+            self.highlight_inbounds_row_signal,
+            self.highlight_outbounds_row_signal,
+            self.unhighlight_inbounds_row_signal,
+            self.unhighlight_outbounds_row_signal,
+        )
+        self.tab_right.addTab(self.routing_tab, 'Routing')
 
         splitter.setSizes([300, 300])
 
         layout_main.addWidget(Globals._log_label, 1)
 
-    def run_ray(self, ray_name):
-        self.stop_ray()
+    def run_xray(self):
+        self.stop_xray()
         if not os.path.exists('config.json'):
             QMessageBox.warning(self, 'Error!', 'Please build config first')
             return
 
-        shutil.copy('config.json', f'{ray_name}/config.json')
-        subprocess.Popen(['start', f'{ray_name}.exe', 'run', '--config', 'config.json'], shell=True, cwd=ray_name)
+        shutil.copy('config.json', 'xray/config.json')
+        subprocess.Popen(['start', 'xray.exe', 'run', '--config', 'config.json'], shell=True, cwd='Xray')
 
     def save_and_build(self):
         self.inbounds_tab.save_data_to_file()
         self.outbounds_tab.save_data_to_file()
-        # self.routing_tab.save_data_to_file()
-        # self.routing_tab.build_config()
+        self.routing_tab.save_data_to_file()
+        self.routing_tab.build_config()
 
-    def stop_ray(self):
-        subprocess.call(["taskkill", "/f", "/im", "v2ray.exe"])
+    def stop_xray(self):
         subprocess.call(["taskkill", "/f", "/im", "xray.exe"])
 
 if __name__ == "__main__":

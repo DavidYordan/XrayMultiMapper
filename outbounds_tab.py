@@ -5,7 +5,7 @@ import os
 import re
 import requests
 from PyQt6.QtCore import (
-    pyqtSignal,
+    pyqtSlot,
     Qt
 )
 from PyQt6.QtGui import (
@@ -34,17 +34,13 @@ from urllib.parse import (
 from globals import Globals
 
 class OutboundsTab(QWidget):
-    highlight_row_signal = pyqtSignal(str)
-    unhighlight_row_signal = pyqtSignal(str)
-    
-    def __init__(self, parent=None):
+    def __init__(self, parent, statistics_routings_signal):
         super().__init__(parent)
         self.headers = {'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36'}
         self.columns = ['Select', 'Protocol', 'Address', 'Port', 'User', 'Password', 'Encryption', 'Remarks', 'Tag']
-        self.highlight_row_signal.connect(self.handle_highlight_row)
         self.orange_datas = {}
+        self.statistics_routings_signal = statistics_routings_signal
         self.user = 'OutboundsTab'
-        self.unhighlight_row_signal.connect(self.handle_unhighlight_row)
         self.setup_ui()
 
         Globals._Log.info(self.user, 'OutboundsTab successfully initialized.')
@@ -179,11 +175,16 @@ class OutboundsTab(QWidget):
         self.table.blockSignals(False)
         self.update_orange_datas()
 
-    def find_row_by_address_port(self, address_port):
+    def find_row_by_tag(self, tag):
         for row in range(self.table.rowCount()):
-            address = self.table.item(row, 2).text() if self.table.item(row, 2) else ''
-            port = self.table.item(row, 3).text() if self.table.item(row, 3) else ''
-            if f'{address}:{port}' == address_port:
+            _tag = self.table.item(row, 8).text() if self.table.item(row, 3) else ''
+            if not _tag:
+                _tag = self.table.item(row, 7).text() if self.table.item(row, 3) else ''
+                if not _tag:
+                    address = self.table.item(row, 2).text() if self.table.item(row, 2) else ''
+                    port = self.table.item(row, 3).text() if self.table.item(row, 3) else ''
+                    _tag = f'{address}:{port}'
+            if _tag == tag:
                 return row
         return -1
     
@@ -196,22 +197,26 @@ class OutboundsTab(QWidget):
             return chk_box
         return None
     
-    def handle_highlight_row(self, address_port):
-        row = self.find_row_by_address_port(address_port)
+    @pyqtSlot
+    def handle_highlight_row(self, tag):
+        row = self.find_row_by_tag(tag)
         if row != -1:
             self.highlight_row(row, True)
 
-    def handle_unhighlight_row(self, address_port):
-        row = self.find_row_by_address_port(address_port)
+    @pyqtSlot
+    def handle_unhighlight_row(self, tag):
+        row = self.find_row_by_tag(tag)
         if row != -1:
             self.highlight_row(row, False)
 
     def highlight_row(self, row, highlight=True):
         color = QColor(Qt.GlobalColor.green) if highlight else QColor(Qt.GlobalColor.white)
+        self.table.blockSignals(True)
         for column in range(self.table.columnCount()):
             item = self.table.item(row, column)
             if item:
                 item.setBackground(color)
+        self.table.blockSignals(False)
 
     def is_row_valid(self, protocol, address, port, user, password, encryption):
         if not self.is_row_data_valid(protocol, address, port, user, password):
