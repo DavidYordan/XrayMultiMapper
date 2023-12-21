@@ -95,7 +95,6 @@ class V2XrayMultiMapper(QMainWindow):
         action_1_3 = QAction('Stop Xray', self)
         action_1_3.triggered.connect(self.stop_xray)
         menu_1.addActions([action_1_1, action_1_2, action_1_3])
-        #
 
         ShortAlt_Q = QShortcut(QKeySequence('Alt+Q'), self)
         ShortAlt_Q.activated.connect(self.command_show_hide, Qt.ConnectionType.QueuedConnection)
