@@ -37,7 +37,7 @@ from inbounds_tab import InboundsTab
 from outbounds_tab import OutboundsTab
 from routing_tab import RoutingTab
 
-class V2XrayMultiMapper(QMainWindow):
+class XrayMultiMapper(QMainWindow):
     highlight_inbounds_row_signal = pyqtSignal(str)
     highlight_outbounds_row_signal = pyqtSignal(str)
     statistics_routings_signal = pyqtSignal()
@@ -46,8 +46,8 @@ class V2XrayMultiMapper(QMainWindow):
     
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("V2XrayMultiMapper")
-        self.setWindowIcon(QIcon('img/V2XrayMultiMapper.ico'))
+        self.setWindowTitle("XrayMultiMapper")
+        self.setWindowIcon(QIcon('img/XrayMultiMapper.ico'))
         self.resize(1040, 620)
         self.create_menu()
         self.create_main_panel()
@@ -185,6 +185,6 @@ class V2XrayMultiMapper(QMainWindow):
 
 if __name__ == "__main__":
     app.setStyle(QStyleFactory.create('Fusion'))
-    main_win = V2XrayMultiMapper()
+    main_win = XrayMultiMapper()
     main_win.show()
     sys.exit(app.exec())

@@ -11,7 +11,7 @@ datas = [
     (os.path.join(current_dir, 'v2ray', 'v2ray.exe'), 'v2ray'),
     (os.path.join(current_dir, 'xray', 'xray.exe'), 'xray'),
     (os.path.join(current_dir, 'img', '*.ico'), 'img'),
-    (os.path.join(current_dir, 'dist', 'V2XrayMultiMapper.exe'), 'dist'),
+    (os.path.join(current_dir, 'dist', 'XrayMultiMapper.exe'), 'dist'),
 ]
 
 a = Analysis(

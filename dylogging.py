@@ -18,7 +18,7 @@ class Logging(logging.Handler):
         self.setFormatter(logging.Formatter('<font color=\"#%(color)s\">%(user)s - %(asctime)s - %(level)s - %(message)s</font>'))
         self.log_directory = "logs"
         os.makedirs(self.log_directory, exist_ok=True)
-        self.logger = logging.getLogger('V2XrayMultiMapper')
+        self.logger = logging.getLogger('XrayMultiMapper')
         self.logger.addHandler(self)
         self.logger.setLevel(logging.INFO)
         self.update_file_handler()
