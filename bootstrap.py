@@ -8,7 +8,7 @@ import tkinter as tk
 from tkinter import filedialog
 
 def create_directory(path):
-    final_path = os.path.join(path, 'XrayMultiMapper')
+    final_path = os.path.join(path, 'V2XrayMultiMapper')
     if not os.path.exists(final_path):
         os.makedirs(final_path)
     return final_path
@@ -43,8 +43,8 @@ def extract_resources(source_dir, target_dir):
             continue
         if resource_path == 'dist':
             shutil.copy(
-                os.path.join(full_source_path, 'XrayMultiMapper.exe'),
-                os.path.join(target_dir, 'XrayMultiMapper.exe')
+                os.path.join(full_source_path, 'V2XrayMultiMapper.exe'),
+                os.path.join(target_dir, 'V2XrayMultiMapper.exe')
             )
         else:
             shutil.copytree(full_source_path, full_target_path)
@@ -74,9 +74,9 @@ def main():
 
     extract_resources(base_path, working_dir)
 
-    exe_path = os.path.join(working_dir, 'XrayMultiMapper.exe')
+    exe_path = os.path.join(working_dir, 'V2XrayMultiMapper.exe')
     
-    create_shortcut_with_vbscript(exe_path, 'XrayMultiMapper', get_desktop_path())
+    create_shortcut_with_vbscript(exe_path, 'V2XrayMultiMapper', get_desktop_path())
 
     explorer_path = os.path.normpath(working_dir)
     subprocess.Popen(f'explorer "{explorer_path}"')

@@ -45,8 +45,8 @@ class V2XrayMultiMapper(QMainWindow):
     
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("XrayMultiMapper")
-        self.setWindowIcon(QIcon('img/XrayMultiMapper.ico'))
+        self.setWindowTitle("V2XrayMultiMapper")
+        self.setWindowIcon(QIcon('img/V2XrayMultiMapper.ico'))
         self.resize(1040, 620)
         self.create_menu()
         self.create_main_panel()

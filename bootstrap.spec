@@ -9,7 +9,7 @@ current_dir = os.getcwd()
 datas = [
     (os.path.join(current_dir, 'xray', 'xray.exe'), 'xray'),
     (os.path.join(current_dir, 'img', '*.ico'), 'img'),
-    (os.path.join(current_dir, 'dist', 'XrayMultiMapper.exe'), 'dist'),
+    (os.path.join(current_dir, 'dist', 'V2XrayMultiMapper.exe'), 'dist'),
 ]
 
 a = Analysis(

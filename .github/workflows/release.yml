@@ -22,7 +22,7 @@ jobs:
         pip install pyinstaller
         pip install -r requirements.txt
 
-    - name: Build Secondary EXE (XrayMultiMapper)
+    - name: Build Secondary EXE (V2XrayMultiMapper)
       run: pyinstaller main.spec
 
     - name: Build Primary EXE (V2XrayResourceExtractor)
