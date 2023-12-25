@@ -7,8 +7,6 @@ block_cipher = None
 current_dir = os.getcwd()
 
 datas = [
-    (os.path.join(current_dir, 'json_model', '*.json'), 'json_model'),
-    (os.path.join(current_dir, 'v2ray', 'v2ray.exe'), 'v2ray'),
     (os.path.join(current_dir, 'xray', 'xray.exe'), 'xray'),
     (os.path.join(current_dir, 'img', '*.ico'), 'img'),
     (os.path.join(current_dir, 'dist', 'XrayMultiMapper.exe'), 'dist'),

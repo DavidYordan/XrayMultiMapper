@@ -1,6 +1,8 @@
+import base64
 import ipaddress
 import json
 import os
+import re
 from PyQt6.QtCore import (
     pyqtSlot,
     Qt
@@ -15,23 +17,30 @@ from PyQt6.QtWidgets import (
     QHBoxLayout,
     QHeaderView,
     QMenu,
-    QMessageBox,
     QPushButton,
     QTableWidget,
     QTableWidgetItem,
     QVBoxLayout,
     QWidget
 )
+from urllib.parse import (
+    quote,
+    unquote
+)
 
 from globals import Globals
 
 class InboundsTab(QWidget):
-    def __init__(self, parent, statistics_routings_signal):
+    def __init__(
+            self,
+            parent,
+            inbounds_tag_changed_signal
+        ):
         super().__init__(parent)
 
-        self.columns = ['Select', 'Protocol', 'Address', 'Port', 'User', 'Password', 'Tag']
+        self.columns = ['select', 'protocol', 'address', 'port', 'user', 'password', 'remarks']
+        self.inbounds_tag_changed_signal = inbounds_tag_changed_signal
         self.orange_datas = {}
-        self.statistics_routings_signal = statistics_routings_signal
         self.user = 'InboundsTab'
         self.setup_ui()
 
@@ -39,44 +48,34 @@ class InboundsTab(QWidget):
 
     def add_blank_row(self):
         ports = set()
-        with Globals.inbounds_lock:
-            for key, data in Globals.inbounds_dict.items():
-                if data.get('Address', '') != '0.0.0.0':
-                    continue
-                row_port = data.get('Port', '')
-                if not row_port:
-                    continue
-                ports.add(row_port)
-            port = 30001
-            while str(port) in ports:
-                port += 1
-            key = f'0.0.0.0:{port}'
-            Globals.inbounds_dict[key] = {
-                'Protocol': 'socks5',
-                'Address': '0.0.0.0',
-                'Port': str(port),
-                'User': '',
-                'Password': '',
-                'Tag': ''
-            }
-        if not self.add_row_inbounds(key):
-            return
-        self.update_orange_datas()
 
-        Globals._Log.info(self.user, f'New row added with key: {key}.')
+        for row in range(self.table.rowCount()):
+            address = self.table.item(row, 2).text()
+            if address != '0.0.0.0':
+                continue
+            row_port = self.table.item(row, 3).text()
+            if not row_port:
+                continue
+            ports.add(row_port)
 
-    def add_row_inbounds(self, key):
+        port = 30001
+        while str(port) in ports:
+            port += 1
 
-        def _find_insert_position(address, port):
-            row_count = self.table.rowCount()
-            for row in range(row_count):
-                row_address = self.table.item(row, 2).text()
-                row_port = self.table.item(row, 3).text()
-                if address < row_address or (address == row_address and port < row_port):
-                    return row
-            return row_count
+        self.add_row({
+            'protocol': 'socks',
+            'address': '0.0.0.0',
+            'port': str(port),
+            'user': '',
+            'password': '',
+            'remarks': ''
+        })
+        
+    def add_row(self, data: dict):
 
-        def _make_checkbox(insert_position):
+        def _add_blank_row(insert_position):
+            self.table.insertRow(insert_position)
+
             widget = QWidget()
             layout = QHBoxLayout(widget)
             chk_box = QCheckBox()
@@ -85,38 +84,69 @@ class InboundsTab(QWidget):
             layout.setContentsMargins(0, 0, 0, 0)
             self.table.setCellWidget(insert_position, 0, widget)
 
-        def _make_text_item(insert_position, idx, value):
-            item = QTableWidgetItem(value)
-            item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-            self.table.setItem(insert_position, idx, item)
+            for col in range(1, self.table.columnCount()):
+                item = QTableWidgetItem('')
+                item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                self.table.setItem(insert_position, col, item)
+
+        def _find_insert_position(address, port):
+            row_count = self.table.rowCount()
+            for row in range(row_count):
+                row_address = self.table.item(row, 3).text()
+                if address < row_address:
+                    return row
+                elif address > row_address:
+                    continue
+                row_port = self.table.item(row, 4).text()
+                if int(port) < int(row_port):
+                    return row
+            return row_count
+
+        address = data.get('address', '')
+        port = data.get('port', '')
+        key = f'{address}:{port}'
 
         with Globals.inbounds_lock:
-            protocol, address, port, user, password, tag, build_key = self.parse_dict_data(Globals.inbounds_dict[key])
-        if key != build_key:
-            self.delete_json(key)
-            return False
-        if not self.is_row_valid(protocol, address, port, user, password):
-            self.delete_json(key)
-            return False
-        if self.is_row_exists(address, port):
-            self.delete_json(key)
-            return False
+            keys = Globals.inbounds_dict.keys()
+        if key in keys:
+            Globals._Log.error(self.user, f'Failed to add row with key: {key}.')
+            return
+
         insert_position = _find_insert_position(address, port)
 
         self.table.blockSignals(True)
-        self.table.insertRow(insert_position)
-        _make_checkbox(insert_position)
-        _make_text_item(insert_position, 1, protocol)
-        _make_text_item(insert_position, 2, address)
-        _make_text_item(insert_position, 3, port)
-        _make_text_item(insert_position, 4, user)
-        _make_text_item(insert_position, 5, password)
-        _make_text_item(insert_position, 6, tag)
+        _add_blank_row(insert_position)
+        for col, column in enumerate(self.columns):
+            if col == 0:
+                continue
+            elif col == 6:
+                self.table.item(insert_position, col).setText(data.get('remarks', '').replace('|', '').lower())
+            else:
+                self.table.item(insert_position, col).setText(data.get(column, ''))
         self.table.blockSignals(False)
+
+        self.update_orange_datas()
+
+        with Globals.inbounds_lock:
+            Globals.inbounds_dict[key] = data
+
+        self.valid_data_by_row(insert_position)
 
         Globals._Log.info(self.user, f'New row added with key: {key}.')
 
-        return True
+    def base64_decode(self, text):
+        try:
+            text = text.replace('_', '/').replace('-', '+')
+            remain = len(text) % 4
+            if remain == 1:
+                text += '==='
+            elif remain == 2:
+                text += '=='
+            elif remain == 3:
+                text += '='
+            return base64.urlsafe_b64decode(text).decode()
+        except:
+            return text
 
     def cell_was_clicked(self, row, column):
         if column == 0:
@@ -127,21 +157,19 @@ class InboundsTab(QWidget):
         if column == 1:
             self.show_protocol_selection_menu(row, column)
 
-    def delete_json(self, key):
+    def delete_data(self, key):
         with Globals.inbounds_lock:
-            if key not in Globals.inbounds_dict.keys():
-                return
-            Globals.inbounds_tags.discard(Globals.inbounds_dict[key]['Tag'].lower())
-            del Globals.inbounds_dict[key]
+            if key in Globals.inbounds_dict.keys():
+                del Globals.inbounds_dict[key]
 
     def delete_row(self, row):
-        address = self.table.item(row, 2).text() if self.table.item(row, 2) else ''
-        port = self.table.item(row, 3).text() if self.table.item(row, 3) else ''
+        address = self.table.item(row, 2).text()
+        port = self.table.item(row, 3).text()
         self.table.removeRow(row)
-        self.delete_json(f'{address}:{port}')
+        self.delete_data(f'{address}:{port}')
         Globals._Log.info(self.user, f'Row with key: {address}:{port} has been deleted.')
 
-    def delete_selected_rows_inbounds(self):
+    def delete_selected_rows(self):
         self.table.blockSignals(True)
         for row in reversed(range(self.table.rowCount())):
             chk_box = self.get_checkbox(row)
@@ -153,135 +181,56 @@ class InboundsTab(QWidget):
         self.table.blockSignals(False)
         self.update_orange_datas()
 
-    def find_row_by_tag(self, tag):
+    def find_row_by_key(self, key):
         for row in range(self.table.rowCount()):
-            _tag = self.table.item(row, 6).text() if self.table.item(row, 6) else ''
-            if not _tag:
-                address = self.table.item(row, 2).text() if self.table.item(row, 2) else ''
-                port = self.table.item(row, 3).text() if self.table.item(row, 2) else ''
-                _tag = f'{address}:{port}'
-            if _tag == tag:
+            address = self.table.item(row, 2).text()
+            port = self.table.item(row, 3).text()
+            if key == f'{address}:{port}':
                 return row
         return -1
     
     def get_checkbox(self, row):
-        widget = self.table.cellWidget(row, 0)
-        if widget is None:
+        if row < 0:
             return None
-        chk_box = widget.layout().itemAt(0).widget()
-        if isinstance(chk_box, QCheckBox):
-            return chk_box
-        return None
+        rowCount = self.table.rowCount()
+        if row > rowCount:
+            return None
+        return self.table.cellWidget(row, 0).layout().itemAt(0).widget()
     
-    @pyqtSlot
-    def handle_highlight_row(self, tag):
-        row = self.find_row_by_tag(tag)
-        if row != -1:
-            self.highlight_row(row, True)
-
-    @pyqtSlot
-    def handle_unhighlight_row(self, tag):
-        row = self.find_row_by_tag(tag)
-        if row != -1:
-            self.highlight_row(row, False)
-
-    def highlight_row(self, row, highlight=True):
-        color = QColor(Qt.GlobalColor.green) if highlight else QColor(Qt.GlobalColor.white)
+    def highlight_row(self, row, color_key, col=-1):
+        if color_key == 'green':
+            color = QColor(Qt.GlobalColor.green)
+        elif color_key == 'red':
+            color = QColor(Qt.GlobalColor.red)
+        else:
+            color = QColor(Qt.GlobalColor.white)
         self.table.blockSignals(True)
-        for column in range(self.table.columnCount()):
-            item = self.table.item(row, column)
-            if item:
-                item.setBackground(color)
+        if col < 0:
+            for column in range(1, self.table.columnCount()):
+                self.table.item(row, column).setBackground(color)
+        elif col < len(self.columns):
+            self.table.item(row, col).setBackground(color)
         self.table.blockSignals(False)
-
-    def is_row_valid(self, protocol, address, port, user, password):
-        if not self.is_row_data_valid(protocol, address, port, user, password):
-            return False
-        if (bool(user) != bool(password)):
-            return False
-        return True
-    
-    def is_row_data_valid(self, protocol, address, port, user, password):
-        if protocol not in ['http', 'socks5']:
-            Globals._Log.error(self.user, f'Invalid protocol: {protocol}')
-            return False
-        try:
-            ipaddress.ip_address(address)
-        except ValueError:
-            Globals._Log.error(self.user, f'Invalid ip: {address}')
-            return False
-        if not port.isdigit():
-            Globals._Log.error(self.user, f'Invalid port: {port}')
-            return False
-        if not (0 < int(port) < 65536):
-            Globals._Log.error(self.user, f'Invalid port: {port}')
-            return False
-        for param in [user, password]:
-            if ':' in param or '@' in param:
-                Globals._Log.error(self.user, f'Invalid user/password combination: {user}, {password}')
-                return False
-        return True
-    
-    def is_row_exists(self, address, port, ignore_row=None):
-        for row in range(self.table.rowCount()):
-            if row == ignore_row:
-                continue
-            row_address = self.table.item(row, 2).text() if self.table.item(row, 2) else ''
-            if address != row_address:
-                continue
-            row_port = self.table.item(row, 3).text() if self.table.item(row, 3) else ''
-            if port != row_port:
-                continue
-            return True
-        return False
 
     def load_data_from_file(self):
 
-        def _clear_json(keys):
+        def _clear_table():
             with Globals.inbounds_lock:
-                for key in Globals.inbounds_dict.copy().keys():
-                    if key in keys:
-                        continue
-                    Globals.inbounds_tags.discard(Globals.inbounds_dict[key]['Tag'].lower())
-                    del Globals.inbounds_dict[key]
+                Globals.inbounds_dict.clear()
+            self.orange_datas.clear()
 
-        def _load_json():
-            with Globals.inbounds_lock:
-                if not os.path.exists('inbounds.json'):
-                    return
-                with open('inbounds.json', 'r') as file:
-                    datas = json.load(file)
-                for key, data in datas.items():
-                    protocol, address, port, user, password, tag, build_key = self.parse_dict_data(data)
-                    if key != build_key:
-                        continue
-                    if not self.is_row_valid(protocol, address, port, user, password):
-                        continue
-                    Globals.inbounds_dict[key] = data
-                    if not tag:
-                        continue
-                    Globals.inbounds_tags.add(tag.lower())
-            Globals._Log.info(self.user, 'Inbound data loaded successfully from inbounds.json.')
+            self.table.blockSignals(True)
+            while self.table.rowCount() > 0:
+                self.table.removeRow(0)
+            self.table.blockSignals(False)
 
-        self.orange_datas.clear()
-        self.table.clear()
-        with Globals.inbounds_lock:
-            Globals.inbounds_dict.clear()
-            Globals.inbounds_tags.clear()
+        _clear_table()
         if not os.path.exists('inbounds.txt'):
             return
-        _load_json()
-        keys = set()
         with open('inbounds.txt', 'r') as file:
             for line in file:
-                key = self.parse_link(line.strip())
-                if not key:
-                    Globals._Log.error(self.user, f'Invalid parameters provided: {line}')
-                    continue
-                keys.add(key)
+                self.parse_link(line.strip())
         Globals._Log.info(self.user, 'Inbound data loaded successfully from inbounds.txt.')
-        _clear_json(keys)
-        self.update_orange_datas()
 
     def on_cell_changed(self, row, column):
 
@@ -290,178 +239,143 @@ class InboundsTab(QWidget):
             self.table.item(row, column).setText(self.orange_datas[(row, column)])
             self.table.blockSignals(False)
 
-        def _set_inbounds_data(protocol, address, port, user, password, tag, key):
-            if not self.is_row_valid(protocol, address, port, user, password):
-                return
-            with Globals.inbounds_lock:
-                Globals.inbounds_dict[key] = {
-                    'Protocol': protocol,
-                    'Address': address,
-                    'Port': port,
-                    'User': user,
-                    'Password': password,
-                    'Tag': tag
-                }
-                if not tag:
-                    return
-                Globals.inbounds_tags.add(tag.lower())
-
-        def _set_orange_value(row, column):
-            self.orange_datas[(row, column)] = self.table.item(row, column).text()
-
         if column == 0:
             return
         
-        protocol, address, port, user, password, tag, key = self.parse_row_data(row)
+        protocol, address, port, user, password, remarks, key = self.parse_row_data(row)
 
-        if not self.is_row_data_valid(protocol, address, port, user, password):
-            _reset_value(row, column)
-            return
-        
-        if column in [2, 3, 6]:
-            with Globals.routing_used_inbound_options_lock:
-                if key in Globals.routing_used_inbound_options.keys():
-                    _reset_value(row, column)
-                    QMessageBox.warning(self, 'Error!', f'Please unbind {key} from routing_tab first.')
-                    return
-        
-        if column in [2, 3]:
-            if self.is_row_exists(address, port, ignore_row=row):
-                _reset_value(row, column)
+        if column == 1:
+            if not self.valid_protocol(protocol):
+                _reset_value(row, 1)
                 return
-            self.delete_json(f'{self.orange_datas[(row, 2)]}:{self.orange_datas[(row, 3)]}')
-            _set_inbounds_data(protocol, address, port, user, password, tag, key)
-            _set_orange_value(row, column)
-            return
-            
-        if not all([address, port]):
-            _reset_value(row, column)
-            QMessageBox.warning(self, 'Error!', 'Please input address and port first!')
-            return
+            with Globals.inbounds_lock:
+                Globals.inbounds_dict[key]['protocol'] = protocol
+            self.orange_datas[(row, column)] = protocol
+
+        elif column == 2:
+            if not self.valid_address(address):
+                _reset_value(row, 2)
+                return
+            if self.valid_key(row, address, port) != -1:
+                _reset_value(row, 2)
+                return
+            old_key = f'{self.orange_datas[(row, 2)]}:{self.orange_datas[(row, 3)]}'
+            with Globals.inbounds_lock:
+                Globals.inbounds_dict[key] = Globals.inbounds_dict.pop(old_key)
+                Globals.inbounds_dict[key]['address'] = address
+            self.orange_datas[(row, 2)] = address
+            self.inbounds_tag_changed_signal.emit(old_key, key)
+
+        elif column == 3:
+            if not self.valid_port(port):
+                _reset_value(row, 3)
+                return
+            if self.valid_key(row, address, port) != -1:
+                _reset_value(row, 3)
+                return
+            old_key = f'{self.orange_datas[(row, 2)]}:{self.orange_datas[(row, 3)]}'
+            with Globals.inbounds_lock:
+                Globals.inbounds_dict[key] = Globals.inbounds_dict.pop(old_key)
+                Globals.inbounds_dict[key]['port'] = port
+            self.orange_datas[(row, 3)] = port
+            self.inbounds_tag_changed_signal.emit(old_key, key)
         
-        if column == 6:
-            if tag.lower() in Globals.inbounds_tags:
+        elif column == 4:
+            if not self.valid_user(user):
+                _reset_value(row, 4)
+                return
+            with Globals.inbounds_lock:
+                Globals.inbounds_dict[key]['user'] = user
+            self.orange_datas[(row, 4)] = user
+        
+        elif column == 5:
+            if not self.valid_password(password):
+                _reset_value(row, 5)
+                return
+            with Globals.inbounds_lock:
+                Globals.inbounds_dict[key]['password'] = password
+            self.orange_datas[(row, 5)] = password
+        
+        elif column == 6:
+            remarks = remarks.replace('|', '').lower()
+            if self.valid_remarks(row, remarks) != -1:
                 _reset_value(row, 6)
-                QMessageBox.warning(self, 'Error!', 'Duplicate values found in tags.')
                 return
-            
-        self.delete_json(key)
-        _set_inbounds_data(protocol, address, port, user, password, tag, key)
-        _set_orange_value(row, column)
-
-    def parse_dict_data(self, data):
-        protocol = data.get('Protocol', '')
-        address = data.get('Address', '')
-        port = data.get('Port', '')
-        user = data.get('User', '')
-        password = data.get('Password', '')
-        tag = data.get('Tag', '')
-        return protocol, address, port, user, password, tag, f'{address}:{port}'
+            self.table.blockSignals(True)
+            self.table.item(row, 6).setText(remarks)
+            self.table.blockSignals(False)
+            with Globals.inbounds_lock:
+                Globals.inbounds_dict[key]['remarks'] = remarks
+            self.orange_datas[(row, 6)] = remarks
+            self.inbounds_tag_changed_signal.emit(key, key)
 
     def parse_row_data(self, row):
-        protocol = self.table.item(row, 1).text() if self.table.item(row, 1) else ''
-        address = self.table.item(row, 2).text() if self.table.item(row, 2) else ''
-        port = self.table.item(row, 3).text() if self.table.item(row, 3) else ''
-        user = self.table.item(row, 4).text() if self.table.item(row, 4) else ''
-        password = self.table.item(row, 5).text() if self.table.item(row, 5) else ''
-        tag = self.table.item(row, 6).text() if self.table.item(row, 6) else ''
-        return protocol, address, port, user, password, tag, f'{address}:{port}'
+        protocol = self.table.item(row, 1).text()
+        address = self.table.item(row, 2).text()
+        port = self.table.item(row, 3).text()
+        user = self.table.item(row, 4).text()
+        password = self.table.item(row, 5).text()
+        remarks = self.table.item(row, 6).text()
+        return protocol, address, port, user, password, remarks, f'{address}:{port}'
         
     def parse_link(self, url):
-
-        def _make_inbounds_dict(protocol, address, port, user, password):
-            if not self.is_row_valid(protocol, address, port, user, password):
-                return False
-            key = f'{address}:{port}'
-            with Globals.inbounds_lock:
-                if key not in Globals.inbounds_dict:
-                    Globals.inbounds_dict[key] = {'Tag': ''}
-                Globals.inbounds_dict[key]['Protocol'] = protocol
-                Globals.inbounds_dict[key]['Address'] = address
-                Globals.inbounds_dict[key]['Port'] = port
-                Globals.inbounds_dict[key]['User'] = user
-                Globals.inbounds_dict[key]['Password'] = password
-            return key
-
-        par1, par2, par3, par4 = ('', '', '', '')
+        if url.count('://') != 1:
+            return
         protocol, rest = url.split("://")
-        if protocol not in ['http', 'socks5']:
-            return False
-        if rest.count('@') == 1 and rest.count(':') == 2:
-            rest_l, rest_r = rest.split('@')
-            par1, par2 = rest_l.split(':')
-            par3, par4 = rest_r.split(':')
-        elif rest.count(':') == 3:
-            par1, par2, par3, par4 = rest.split(':')
-        elif rest.count(':') == 1:
-            par1, par2 = rest.split(':')
-        else:
-            return False
-        if not par1 or not par2:
-            return False
-        if par3:
-            if not par4:
-                return False
-            if '.' in par3 and par4.isdigit():
-                if '.' in par1 and par2.isdigit():
-                    return False
-                key = _make_inbounds_dict(protocol, par3, par4, par1, par2)
-            elif '.' in par1 and par2.isdigit():
-                key = _make_inbounds_dict(protocol, par1, par2, par3, par4)
-            else:
-                return False
-        else:
-            if par4:
-                return False
-            if '.' not in par1:
-                return False
-            if not par2.isdigit():
-                return False
-            key = _make_inbounds_dict(protocol, par1, par2, par3, par4)
-        if not key:
-            return False
-        if not self.add_row_inbounds(key):
-            return False
-        return key
+        if protocol not in ['http', 'socks']:
+            return
+        match = re.match(r'(?P<params>.+)@(?P<address>[^:]+):(?P<port>\d+)(?:#(?P<remarks>.+))?', rest)
+        if not match:
+            return
+        user_password = self.base64_decode(match.group('params'))
+        if user_password.count(':') != 1:
+            return
+        user, password = user_password.split(':')
+        address = match.group('address')
+        port = match.group('port')
+        remarks = unquote(match.group('remarks')).strip() if match.group('remarks') else ''
+        self.add_row({
+            'protocol': protocol,
+            'address': address,
+            'port': port,
+            'user': user,
+            'password': password,
+            'remarks': remarks
+        })
 
     def reload_rows(self):
-        self.table.blockSignals(True)
-        for row in reversed(range(self.table.rowCount())):
-            self.delete_row(row)
-        self.table.blockSignals(False)
         self.load_data_from_file()
         Globals._Log.info(self.user, f'Reload complete.')
 
     def save_data_to_file(self):
+
+        def _encode_data(protocol, address, port, user, password, remarks):
+            user_password = f'{user}:{password}'
+            user_password_encoded = base64.urlsafe_b64encode(user_password.encode()).decode().rstrip("=")
+            url = f'{protocol}://{user_password_encoded}@{address}:{port}'
+            if remarks:
+                remarks_encoded = quote(remarks)
+                url += f"#{remarks_encoded}"
+            return url
+        
+        if not self.valid_datas():
+            Globals._Log.error(self.user, 'Failed to save Inbounds datas.')
+            return
         lines = ''
-        with Globals.inbounds_lock:
-            datas = Globals.inbounds_dict.copy()
-        for key, data in datas.items():
-            protocol, address, port, user, password, tag, build_key = self.parse_dict_data(data)
-            if key != build_key:
-                self.delete_json(key)
-                continue
-            if not self.is_row_valid(protocol, address, port, user, password):
-                self.delete_json(key)
-                continue
-            lines += f'{protocol}://{address}:{port}'
-            if all([user, password]):
-                lines += f'@{user}:{password}'
+        for row in range(self.table.rowCount()):
+            protocol, address, port, user, password, remarks, key = self.parse_row_data(row)
+            lines += _encode_data(protocol, address, port, user, password, remarks)
             lines += '\n'
         try:
-            with open('inbounds.json', 'w') as file:
-                json.dump(Globals.inbounds_dict, file, indent=4)
-            Globals._Log.info(self.user, 'Inbound data saved successfully to inbounds.json.')
+            with Globals.inbounds_lock:
+                with open('inbounds.json', 'w') as file:
+                    json.dump(Globals.inbounds_dict, file, indent=4)
+            Globals._Log.info(self.user, 'Inbounds datas saved successfully to inbounds.json.')
             with open('inbounds.txt', 'w') as file:
                 file.write(lines)
-            Globals._Log.info(self.user, 'Inbound data saved successfully to inbounds.txt.')
+            Globals._Log.info(self.user, 'Inbounds datas saved successfully to inbounds.txt.')
         except Exception as e:
-            Globals._Log.error(self.user, f'Failed to save Inbound data, Error: {e}')
-
-    def set_protocol(self, row, column, protocol):
-        item = QTableWidgetItem(protocol)
-        item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.table.setItem(row, column, item)
+            Globals._Log.error(self.user, f'Failed to save Inbounds datas, Error: {e}')
 
     def setup_ui(self):
         layout = QVBoxLayout(self)
@@ -472,7 +386,7 @@ class InboundsTab(QWidget):
         button_add.clicked.connect(self.add_blank_row)
         top_layout.addWidget(button_add)
         button_delete = QPushButton('Delete')
-        button_delete.clicked.connect(self.delete_selected_rows_inbounds)
+        button_delete.clicked.connect(self.delete_selected_rows)
         top_layout.addWidget(button_delete)
         button_reload = QPushButton('Reload')
         button_reload.clicked.connect(self.reload_rows)
@@ -498,18 +412,214 @@ class InboundsTab(QWidget):
         self.load_data_from_file()
 
     def show_protocol_selection_menu(self, row, column):
+
+        def _set_protocol(row, column, protocol):
+            item = QTableWidgetItem(protocol)
+            item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.table.setItem(row, column, item)
+
         menu = QMenu(self)
-        action_socks5 = QAction('socks5', self)
+        action_socks = QAction('socks', self)
         action_http = QAction('http', self)
-        action_socks5.triggered.connect(lambda: self.set_protocol(row, column, 'socks5'))
-        action_http.triggered.connect(lambda: self.set_protocol(row, column, 'http'))
-        menu.addAction(action_socks5)
+        action_socks.triggered.connect(lambda: _set_protocol(row, column, 'socks'))
+        action_http.triggered.connect(lambda: _set_protocol(row, column, 'http'))
+        menu.addAction(action_socks)
         menu.addAction(action_http)
         menu.popup(QCursor.pos())
+
+    @pyqtSlot(str)
+    def update_background(self, key='', row=-1):
+
+        def _highlight_row(row, key):
+            with Globals.routing_used_inbounds_keys_lock:
+                if key in Globals.routing_used_inbounds_keys:
+                    self.highlight_row(row, 'green')
+                else:
+                    self.highlight_row(row, 'white')
+
+        rowCount = self.table.rowCount()
+        if row >= 0 and row <= rowCount:
+            if not key:
+                key = f'{self.table.item(row, 2).text()}:{self.table.item(row, 3).text()}'
+            _highlight_row(row, key)
+            return
+        if not key:
+            return
+        row = self.find_row_by_key(key)
+        if row >= 0 and row <= rowCount:
+            _highlight_row(row, key)
 
     def update_orange_datas(self):
         self.orange_datas.clear()
         for row in range(0, self.table.rowCount()):
             for col in range(1, self.table.columnCount()):
-                cell_value = self.table.item(row, col).text() if self.table.item(row, col) else ''
+                cell_value = self.table.item(row, col).text()
                 self.orange_datas[(row, col)] = cell_value
+
+    def valid_datas(self):
+        keys = {}
+        remarkses = {}
+        for row in range(self.table.rowCount()):
+            protocol, address, port, user, password, remarks, key = self.parse_row_data(row)
+
+            if not self.valid_protocol(protocol):
+                self.highlight_row(row, 'red', 1)
+                return False
+            
+            if not self.valid_address(address):
+                self.highlight_row(row, 'red', 2)
+                return False
+            
+            if not self.valid_port(port):
+                self.highlight_row(row, 'red', 3)
+                return False
+            
+            if key in keys:
+                self.highlight_row(row, 'red', 2)
+                self.highlight_row(row, 'red', 3)
+                self.highlight_row(keys[key], 'red', 2)
+                self.highlight_row(keys[key], 'red', 3)
+                return False
+            else:
+                keys[key] = row
+            
+            if not self.valid_user(user):
+                self.highlight_row(row, 'red', 4)
+                return False
+            
+            if not self.valid_password(password):
+                self.highlight_row(row, 'red', 5)
+                return False
+            
+            if not self.valid_user_password(user, password):
+                self.highlight_row(row, 'red', 4)
+                self.highlight_row(row, 'red', 5)
+                return False
+            
+            if  remarks:
+                if remarks in remarkses:
+                    self.highlight_row(row, 'red', 6)
+                    self.highlight_row(remarkses[remarks], 'red', 6)
+                    return False
+                else:
+                    remarkses[remarks] = row
+            
+            self.update_background(key, row)
+
+        return True
+
+    def valid_data_by_row(self, row):
+        rowCount = self.table.rowCount()
+        if row > rowCount or row < 0:
+            return False
+        
+        protocol, address, port, user, password, remarks, key = self.parse_row_data(row)
+
+        if not self.valid_protocol(protocol):
+            self.highlight_row(row, 'red', 1)
+            return False
+        
+        if not self.valid_address(address):
+            self.highlight_row(row, 'red', 2)
+            return False
+        
+        if not self.valid_port(port):
+            self.highlight_row(row, 'red', 3)
+            return False
+        
+        if not self.valid_user(user):
+            self.highlight_row(row, 'red', 4)
+            return False
+        
+        if not self.valid_password(password):
+            self.highlight_row(row, 'red', 5)
+            return False
+        
+        if not self.valid_user_password(user, password):
+            self.highlight_row(row, 'red', 4)
+            self.highlight_row(row, 'red', 5)
+            return False
+        
+        duplicate_row = self.valid_key(row, address, port)
+        if duplicate_row != -1:
+            self.highlight_row(row, 'red', 2)
+            self.highlight_row(row, 'red', 3)
+            self.highlight_row(duplicate_row, 'red', 2)
+            self.highlight_row(duplicate_row, 'red', 3)
+            return False
+        
+        duplicate_row = self.valid_remarks(row, remarks)
+        if duplicate_row != -1:
+            self.highlight_row(row, 'red', 6)
+            self.highlight_row(duplicate_row, 'red', 6)
+            return False
+
+        self.update_background(key, row)
+        return True
+
+    def valid_address(self, address):
+        try:
+            ipaddress.ip_address(address)
+        except ValueError:
+            Globals._Log.error(self.user, f'Invalid ip: {address}')
+            return False
+        return True
+    
+    def valid_key(self, row, address, port):
+        if not address:
+            return -1
+        if not port:
+            return -1
+        for i in range(self.table.rowCount()):
+            if row == i:
+                continue
+            if address != self.table.item(i, 2).text():
+                continue
+            if port != self.table.item(i, 3).text():
+                continue
+            return i
+        return -1
+        
+    def valid_password(self, password):
+        if ':' in password:
+            Globals._Log.error(self.user, f'Invalid password: {password}')
+            return False
+        return True
+        
+    def valid_port(self, port):
+        if not port.isdigit():
+            Globals._Log.error(self.user, f'Invalid port: {port}')
+            return False
+        if not (0 < int(port) < 65536):
+            Globals._Log.error(self.user, f'Invalid port: {port}')
+            return False
+        return True
+
+    def valid_protocol(self, protocol):
+        if protocol not in ['http', 'socks']:
+            Globals._Log.error(self.user, f'Invalid protocol: {protocol}')
+            return False
+        return True
+    
+    def valid_remarks(self, row, remarks):
+        if not remarks:
+            return -1
+        for i in range(self.table.rowCount()):
+            if row == i:
+                continue
+            if remarks != self.table.item(i, 6).text():
+                continue
+            return i
+        return -1
+        
+    def valid_user(self, user):
+        if ':' in user:
+            Globals._Log.error(self.user, f'Invalid user: {user}')
+            return False
+        return True
+        
+    def valid_user_password(self, user, password):
+        if bool(user) != bool(password):
+            Globals._Log.error(self.user, f'Invalid user/password combination: {user}, {password}')
+            return False
+        return True

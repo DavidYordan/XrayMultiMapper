@@ -13,11 +13,14 @@ class Globals(QObject):
     _log_label = QLabel()
     _Log = Logging(_log_textedit, _log_label)
     inbounds_dict = {}
-    inbounds_tags = set()
     inbounds_lock = Lock()
     outbounds_dict = {}
-    outbounds_tags = set()
     outbounds_lock = Lock()
+    routing_used_inbounds_keys = {}
+    routing_used_inbounds_keys_lock = Lock()
+    routing_used_outbounds_keys = {}
+    routing_used_outbounds_keys_lock = Lock()
+    routing_used_outbounds_through_keys = set()
 
     @contextmanager
     def acquire(*locks):

@@ -1,10 +1,10 @@
 import base64
-import ipaddress
 import json
 import os
 import re
 import requests
 from PyQt6.QtCore import (
+    pyqtSignal,
     pyqtSlot,
     Qt
 )
@@ -15,6 +15,7 @@ from PyQt6.QtGui import (
     QGuiApplication
 )
 from PyQt6.QtWidgets import (
+    QAbstractItemView,
     QCheckBox,
     QHeaderView,
     QHBoxLayout,
@@ -27,62 +28,44 @@ from PyQt6.QtWidgets import (
     QWidget
 )
 from urllib.parse import (
+    parse_qs,
     quote,
-    unquote
+    unquote,
+    urlparse
 )
 
 from globals import Globals
+from outbounds_dialog import OutboundsDialog
 
 class OutboundsTab(QWidget):
-    def __init__(self, parent, statistics_routings_signal):
+    add_row_signal = pyqtSignal(dict)
+    modify_row_signal = pyqtSignal(dict, int)
+
+    def __init__(
+            self,
+            parent,
+            outbounds_tag_changed_signal
+        ):
         super().__init__(parent)
         self.headers = {'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36'}
-        self.columns = ['Select', 'Protocol', 'Address', 'Port', 'User', 'Password', 'Encryption', 'Remarks', 'Tag']
+        self.columns = ['select', 'source_tag', 'protocol', 'address', 'port', 'encryption', 'net', 'security', 'remarks']
         self.orange_datas = {}
-        self.statistics_routings_signal = statistics_routings_signal
+        self.outbounds = {}
+        self.outbounds_tag_changed_signal = outbounds_tag_changed_signal
         self.user = 'OutboundsTab'
         self.setup_ui()
 
+        self.add_row_signal.connect(self.add_row)
+        self.modify_row_signal.connect(self.modify_row_outbounds)
+
         Globals._Log.info(self.user, 'OutboundsTab successfully initialized.')
 
-    def add_blank_row(self):
+    @pyqtSlot(dict)
+    def add_row(self, data: dict):
 
-        def _make_checkbox():
-            widget = QWidget()
-            layout = QHBoxLayout(widget)
-            chk_box = QCheckBox()
-            layout.addWidget(chk_box)
-            layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            layout.setContentsMargins(0, 0, 0, 0)
-            self.table.setCellWidget(0, 0, widget)
+        def _add_blank_row(insert_position):
+            self.table.insertRow(insert_position)
 
-        def _make_text_item(idx):
-            item = QTableWidgetItem('')
-            item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-            self.table.setItem(0, idx, item)
-
-        self.table.blockSignals(True)
-        self.table.insertRow(0)
-        _make_checkbox()
-        for i in range(1, 9):
-            _make_text_item(i)
-        self.table.blockSignals(False)
-        self.update_orange_datas()
-
-        Globals._Log.info(self.user, f'New blank row added.')
-
-    def add_row_outbounds(self, key):
-
-        def _find_insert_position(address, port):
-            row_count = self.table.rowCount()
-            for row in range(row_count):
-                row_address = self.table.item(row, 2).text()
-                row_port = self.table.item(row, 3).text()
-                if address < row_address or (address == row_address and port < row_port):
-                    return row
-            return row_count
-
-        def _make_checkbox(insert_position):
             widget = QWidget()
             layout = QHBoxLayout(widget)
             chk_box = QCheckBox()
@@ -91,40 +74,55 @@ class OutboundsTab(QWidget):
             layout.setContentsMargins(0, 0, 0, 0)
             self.table.setCellWidget(insert_position, 0, widget)
 
-        def _make_text_item(insert_position, idx, value):
-            item = QTableWidgetItem(value)
-            item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-            self.table.setItem(insert_position, idx, item)
+            for col in range(1, self.table.columnCount()):
+                item = QTableWidgetItem('')
+                item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                self.table.setItem(insert_position, col, item)
 
-        with Globals.outbounds_lock:
-            protocol, address, port, user, password, encryption, remarks, tag, build_key = self.parse_dict_data(Globals.outbounds_dict[key])
-        if key != build_key:
-            self.delete_json(key)
-            return False
-        if not self.is_row_valid(protocol, address, port, user, password, encryption):
-            self.delete_json(key)
-            return False
-        if self.is_row_exists(address, port):
-            self.delete_json(key)
-            return False
+        def _find_insert_position(address, port):
+            row_count = self.table.rowCount()
+            for row in range(row_count):
+                row_address = self.table.item(row, 3).text()
+                if address < row_address:
+                    return row
+                elif address > row_address:
+                    continue
+                row_port = self.table.item(row, 4).text()
+                if int(port) < int(row_port):
+                    return row
+            return row_count
+
+        address = data.get('address', '')
+        port = data.get('port', '')
+        key = f'{address}:{port}'
+
+        with Globals.inbounds_lock:
+            keys = Globals.inbounds_dict.keys()
+        if key in keys:
+            Globals._Log.error(self.user, f'Failed to add row with key: {key}.')
+            return
+
         insert_position = _find_insert_position(address, port)
 
         self.table.blockSignals(True)
-        self.table.insertRow(insert_position)
-        _make_checkbox(insert_position)
-        _make_text_item(insert_position, 1, protocol)
-        _make_text_item(insert_position, 2, address)
-        _make_text_item(insert_position, 3, port)
-        _make_text_item(insert_position, 4, user)
-        _make_text_item(insert_position, 5, password)
-        _make_text_item(insert_position, 6, encryption)
-        _make_text_item(insert_position, 7, remarks)
-        _make_text_item(insert_position, 8, tag)
+        _add_blank_row(insert_position)
+        for col, column in enumerate(self.columns):
+            if col == 0:
+                continue
+            elif col == 8:
+                self.table.item(insert_position, 8).setText(data.get('remarks', '').replace('|', '').lower())
+            else:
+                self.table.item(insert_position, col).setText(data.get(column, ''))
         self.table.blockSignals(False)
 
-        Globals._Log.info(self.user, f'New row added with key: {key}.')
+        self.update_orange_datas()
 
-        return True
+        with Globals.outbounds_lock:
+            Globals.outbounds_dict[key] = data
+
+        self.valid_data_by_row(insert_position)
+
+        Globals._Log.info(self.user, f'New row added with key: {key}.')
 
     def base64_decode(self, text):
         try:
@@ -138,7 +136,7 @@ class OutboundsTab(QWidget):
                 text += '='
             return base64.urlsafe_b64decode(text).decode()
         except:
-            return ''
+            return text
 
     def cell_was_clicked(self, row, column):
         if column == 0:
@@ -146,24 +144,26 @@ class OutboundsTab(QWidget):
             if not chk_box:
                 return
             chk_box.setChecked(not chk_box.isChecked())
-        if column == 1:
-            self.show_protocol_selection_menu(row, column)
+        elif column == 1:
+            self.set_checked_by_source_tag(row)
 
-    def delete_json(self, key):
+    def cell_was_double_clicked(self, index):
+        protocol = self.table.item(index.row(), 2).text()
+        OutboundsDialog(self, self.modify_row_signal, protocol, index.row())
+
+    def delete_data(self, key):
         with Globals.outbounds_lock:
-            if key not in Globals.outbounds_dict.keys():
-                return
-            Globals.outbounds_tags.discard(Globals.outbounds_dict[key]['Tag'].lower())
-            del Globals.outbounds_dict[key]
+            if key in Globals.outbounds_dict.keys():
+                del Globals.outbounds_dict[key]
 
     def delete_row(self, row):
-        address = self.table.item(row, 2).text() if self.table.item(row, 2) else ''
-        port = self.table.item(row, 3).text() if self.table.item(row, 3) else ''
+        address = self.table.item(row, 3).text()
+        port = self.table.item(row, 4).text()
         self.table.removeRow(row)
-        self.delete_json(f'{address}:{port}')
+        self.delete_data(f'{address}:{port}')
         Globals._Log.info(self.user, f'Row with key: {address}:{port} has been deleted.')
 
-    def delete_selected_rows_outbounds(self):
+    def delete_selected_rows(self):
         self.table.blockSignals(True)
         for row in reversed(range(self.table.rowCount())):
             chk_box = self.get_checkbox(row)
@@ -175,18 +175,38 @@ class OutboundsTab(QWidget):
         self.table.blockSignals(False)
         self.update_orange_datas()
 
-    def find_row_by_tag(self, tag):
+    def find_row_by_key(self, key):
         for row in range(self.table.rowCount()):
-            _tag = self.table.item(row, 8).text() if self.table.item(row, 3) else ''
-            if not _tag:
-                _tag = self.table.item(row, 7).text() if self.table.item(row, 3) else ''
-                if not _tag:
-                    address = self.table.item(row, 2).text() if self.table.item(row, 2) else ''
-                    port = self.table.item(row, 3).text() if self.table.item(row, 3) else ''
-                    _tag = f'{address}:{port}'
-            if _tag == tag:
+            address = self.table.item(row, 3).text()
+            port = self.table.item(row, 4).text()
+            if key == f'{address}:{port}':
                 return row
         return -1
+    
+    def find_source_tag(self, key, source=''):
+        source = source if source else self.outbounds.get(key, {}).get('source', '')
+        source_tag = self.outbounds.get(key, {}).get('source_tag', '')
+        source_tags = set()
+        with Globals.outbounds_lock:
+            for _, data in Globals.outbounds_dict.items():
+                _source_tag = data.get('source_tag', '')
+                if _source_tag:
+                    source_tags.add(_source_tag)
+                _source = data.get('source', '')
+                if not _source:
+                    continue
+                if source != _source:
+                    continue
+                if _source_tag:
+                    return _source_tag
+        if source_tag:
+            return source_tag
+        if not source:
+            return ''
+        num = 1
+        while f'sub-{num:03}' in source_tags:
+            num += 1
+        return f'sub-{num:03}'
     
     def get_checkbox(self, row):
         widget = self.table.cellWidget(row, 0)
@@ -197,207 +217,88 @@ class OutboundsTab(QWidget):
             return chk_box
         return None
     
-    @pyqtSlot
-    def handle_highlight_row(self, tag):
-        row = self.find_row_by_tag(tag)
-        if row != -1:
-            self.highlight_row(row, True)
-
-    @pyqtSlot
-    def handle_unhighlight_row(self, tag):
-        row = self.find_row_by_tag(tag)
-        if row != -1:
-            self.highlight_row(row, False)
-
-    def highlight_row(self, row, highlight=True):
-        color = QColor(Qt.GlobalColor.green) if highlight else QColor(Qt.GlobalColor.white)
+    def highlight_row(self, row, color_key, col=-1):
+        if color_key == 'blue':
+            color = QColor(Qt.GlobalColor.blue)
+        elif color_key == 'green':
+            color = QColor(Qt.GlobalColor.green)
+        elif color_key == 'red':
+            color = QColor(Qt.GlobalColor.red)
+        else:
+            color = QColor(Qt.GlobalColor.white)
         self.table.blockSignals(True)
-        for column in range(self.table.columnCount()):
-            item = self.table.item(row, column)
-            if item:
-                item.setBackground(color)
+        if col < 0:
+            for column in range(1, self.table.columnCount()):
+                self.table.item(row, column).setBackground(color)
+        elif col < len(self.columns):
+            self.table.item(row, col).setBackground(color)
         self.table.blockSignals(False)
-
-    def is_row_valid(self, protocol, address, port, user, password, encryption):
-        if not self.is_row_data_valid(protocol, address, port, user, password):
-            return False
-        if protocol == 'socks5':
-            if (bool(user) != bool(password)):
-                return False
-        elif protocol == 'ss':
-            if not all([encryption, password]):
-                return False
-        return True
-    
-    def is_row_data_valid(self, protocol, address, port, user, password):
-        if bool(protocol) and protocol not in ['ss', 'socks5']:
-            Globals._Log.error(self.user, f'Invalid protocol: {protocol}')
-            return False
-        if ':' in address or '@' in address or '.' not in address:
-            Globals._Log.error(self.user, f'Invalid server address: {address}')
-            return False
-        if not port.isdigit():
-            Globals._Log.error(self.user, f'Invalid port: {port}')
-            return False
-        if not (0 < int(port) < 65536):
-            Globals._Log.error(self.user, f'Invalid port: {port}')
-            return False
-        if protocol == 'socks5':
-            for param in [user, password]:
-                if ':' in param or '@' in param:
-                    Globals._Log.error(self.user, f'Invalid user/password combination: {user}, {password}')
-                    return False
-        return True
-    
-    def is_row_exists(self, address, port, ignore_row=None):
-        for row in range(self.table.rowCount()):
-            if row == ignore_row:
-                continue
-            row_address = self.table.item(row, 2).text() if self.table.item(row, 2) else ''
-            if address != row_address:
-                continue
-            row_port = self.table.item(row, 3).text() if self.table.item(row, 3) else ''
-            if port != row_port:
-                continue
-            return True
-        return False
 
     def load_data_from_file(self):
 
-        def _clear_json(keys):
+        def _clear_table():
             with Globals.outbounds_lock:
-                for key in Globals.outbounds_dict.copy().keys():
-                    if key in keys:
-                        continue
-                    Globals.outbounds_tags.discard(Globals.outbounds_dict[key]['Tag'].lower())
-                    del Globals.outbounds_dict[key]
+                Globals.outbounds_dict.clear()
+            self.orange_datas.clear()
 
-        def _load_json():
-            with Globals.outbounds_lock:
-                if not os.path.exists('outbounds.json'):
-                    return
-                with open('outbounds.json') as file:
-                    datas = json.load(file)
-                for key, data in datas.items():
-                    protocol, address, port, user, password, encryption, remarks, tag, build_key = self.parse_dict_data(data)
-                    if key != build_key:
-                        continue
-                    if not self.is_row_valid(protocol, address, port, user, password, encryption):
-                        continue
-                    Globals.outbounds_dict[key] = data
-                    if not tag:
-                        continue
-                    Globals.outbounds_tags.add(tag.lower())
-            Globals._Log.info(self.user, 'Outbound data loaded successfully from outbounds.json.')
-
-        self.orange_datas.clear()
-        with Globals.outbounds_lock:
-            Globals.outbounds_dict.clear()
-            Globals.outbounds_tags.clear()
-        if not os.path.exists('outbounds.txt'):
-            return
-        _load_json()
-        keys = set()
-        with open('outbounds.txt', 'r') as file:
-            for line in file:
-                key = self.parse_link(line.strip())
-                if not key:
-                    Globals._Log.error(self.user, f'Invalid parameters provided: {line}')
-                    continue
-                keys.add(key)
-        Globals._Log.info(self.user, 'Outbound data loaded successfully from outbounds.txt.')
-        _clear_json(keys)
-        self.update_orange_datas()
-
-    def on_cell_changed(self, row, column):
-
-        def _reset_value(row, column):
             self.table.blockSignals(True)
-            self.table.item(row, column).setText(self.orange_datas[(row, column)])
+            while self.table.rowCount() > 0:
+                self.table.removeRow(0)
             self.table.blockSignals(False)
 
-        def _set_outbounds_data(protocol, address, port, user, password, encryption, remarks, tag, key):
-            if not self.is_row_valid(protocol, address, port, user, password, encryption):
+        def _load_json():
+            self.outbounds.clear()
+            if not os.path.exists('outbounds.json'):
                 return
-            with Globals.outbounds_lock:
-                Globals.outbounds_dict[key] = {
-                    'Protocol': protocol,
-                    'Address': address,
-                    'Port': port,
-                    'User': user,
-                    'Password': password,
-                    'Encryption': encryption,
-                    'Remarks': remarks,
-                    'Tag': tag
-                }
-                if not tag:
-                    return
-                Globals.outbounds_tags.add(tag.lower())
+            with open('outbounds.json', 'r') as file:
+                datas = json.load(file)
+            for key, data in datas.items():
+                if key != f'{data.get("address", "")}:{data.get("port", "")}':
+                    continue
+                self.outbounds[key] = data
+                remarks = data['remarks'].replace('|', '').lower()
+                self.outbounds[key]['remarks'] = remarks
+            Globals._Log.info(self.user, 'outbounds datas loaded successfully from outbounds.json.')
 
-        def _set_orange_value(row, column):
-            self.orange_datas[(row, column)] = self.table.item(row, column).text()
+        _clear_table()
+        _load_json()
+        if not os.path.exists('outbounds.txt'):
+            return
+        with open('outbounds.txt', 'r') as file:
+            for line in file:
+                self.parse_link(line.strip())
+        Globals._Log.info(self.user, 'outbound data loaded successfully from outbounds.txt.')
 
-        if column == 0:
+    @pyqtSlot(dict, int)
+    def modify_row_outbounds(self, data, row):
+        if row < 0:
+            Globals._Log.error(self.user, f'Invalid row: {row}')
+            return
+        if row > self.table.rowCount():
+            Globals._Log.error(self.user, f'Invalid row: {row}')
             return
         
-        protocol, address, port, user, password, encryption, remarks, tag, key = self.parse_row_data(row)
+        for col, column in enumerate(self.columns):
+            if col == 0:
+                continue
+            old_value = self.table.item(row, col).text()
+            new_value = data[column]
+            if old_value == new_value:
+                continue
+            self.table.item(row, col).setText(new_value)
 
-        if not self.is_row_data_valid(protocol, address, port, user, password):
-            _reset_value(row, column)
-            return
-        
-        if column in [2, 3, 8]:
-            with Globals.routing_used_outbound_options_lock:
-                if key in Globals.routing_used_outbound_options:
-                    _reset_value(row, column)
-                    QMessageBox.warning(self, 'Error!', f'Please unbind {key} from routing_tab first.')
-                    return
-        
-        if column in [2, 3]:
-            if self.is_row_exists(address, port, ignore_row=row):
-                _reset_value(row, column)
-                return
-            self.delete_json(f'{self.orange_datas[(row, 2)]}:{self.orange_datas[(row, 3)]}')
-            _set_outbounds_data(protocol, address, port, user, password, encryption, remarks, tag, key)
-            _set_orange_value(row, column)
-            return
-            
-        if not all([address, port]):
-            _reset_value(row, column)
-            QMessageBox.warning(self, 'Error!', 'Please input address and port first!')
-            return
-        
-        if column == 8:
-            if tag.lower() in Globals.outbounds_tags:
-                _reset_value(row, 8)
-                QMessageBox.warning(self, 'Error!', 'Duplicate values found in tags.')
-                return
-            
-        self.delete_json(key)
-        _set_outbounds_data(protocol, address, port, user, password, encryption, remarks, tag, key)
-        _set_orange_value(row, column)
-
-    def parse_dict_data(self, data):
-        protocol = data.get('Protocol', '')
-        address = data.get('Address', '')
-        port = data.get('Port', '')
-        user = data.get('User', '')
-        password = data.get('Password', '')
-        encryption = data.get('Encryption', '')
-        remarks = data.get('Remarks', '')
-        tag = data.get('Tag', '')
-        return protocol, address, port, user, password, encryption, remarks, tag, f'{address}:{port}'
+        Globals._Log.info(self.user, f'New row added with row: {row}.')
 
     def parse_row_data(self, row):
-        protocol = self.table.item(row, 1).text() if self.table.item(row, 1) else ''
-        address = self.table.item(row, 2).text() if self.table.item(row, 2) else ''
-        port = self.table.item(row, 3).text() if self.table.item(row, 3) else ''
-        user = self.table.item(row, 4).text() if self.table.item(row, 4) else ''
-        password = self.table.item(row, 5).text() if self.table.item(row, 5) else ''
-        encryption = self.table.item(row, 6).text() if self.table.item(row, 6) else ''
-        remarks = self.table.item(row, 7).text() if self.table.item(row, 7) else ''
-        tag = self.table.item(row, 8).text() if self.table.item(row, 8) else ''
-        return protocol, address, port, user, password, encryption, remarks, tag, f'{address}:{port}'
+        source_tag = self.table.item(row, 1).text()
+        protocol = self.table.item(row, 2).text()
+        address = self.table.item(row, 3).text()
+        port = self.table.item(row, 4).text()
+        encryption = self.table.item(row, 5).text()
+        net = self.table.item(row, 6).text()
+        security = self.table.item(row, 7).text()
+        remarks = self.table.item(row, 8).text()
+        return source_tag, protocol, address, port, encryption, net, security, remarks, f'{address}:{port}'
 
     def parse_from_clipboard(self):
         try:
@@ -412,119 +313,81 @@ class OutboundsTab(QWidget):
         except Exception as e:
             Globals._Log.info(self.user, f'Failed to import from clipboard: {e}')
 
-    def parse_link(self, url):
+    def parse_link(self, url, source=''):
         try:
-            key = None
             if url.count('://') != 1:
-                return key
+                return
             protocol, rest = url.split('://')
-            if protocol == 'socks5':
-                key = self.parse_socks5(rest)
+            if protocol == 'socks':
+                self.parse_socks(rest, source)
             elif protocol == 'ss':
-                key = self.parse_ss(rest)
+                self.parse_shadowsocks(rest, source)
+            elif protocol == 'trojan':
+                self.parse_trojan(rest, source)
+            elif protocol == 'vless':
+                self.parse_vless(rest, source)
+            elif protocol == 'vmess':
+                self.parse_vmess(rest, source)
             elif protocol in ['http', 'https']:
                 if '/' not in rest:
-                    return key
+                    return
                 self.parse_subscribe(url)
-            return key
         except Exception as e:
             Globals._Log.error(self.user, f'Failed to parse link: {url}, Error: {e}')
-            return None
 
-    def parse_socks5(self, rest):
+    def parse_socks(self, rest, source):
+        match = re.match(r'(?P<params>.+)@(?P<address>[^:]+):(?P<port>\d+)(?:#(?P<remarks>.+))?', rest)
+        if not match:
+            return
+        user_password = self.base64_decode(match.group('params'))
+        if user_password.count(':') != 1:
+            return
+        user, password = user_password.split(':')
+        address = match.group('address')
+        port = match.group('port')
+        key = f'{address}:{port}'
+        remarks = unquote(match.group('remarks')).strip() if match.group('remarks') else ''
+        source_tag = self.find_source_tag(key, source)
+        self.add_row({
+            'source_tag': source_tag,
+            'source': source,
+            'protocol': 'socks',
+            'address': address,
+            'port': port,
+            'encryption': '',
+            'password': password,
+            'net': '',
+            'security': '',
+            'user': user,
+            'remarks': remarks
+        })
 
-        def _make_outbounds_dict(address, port, user, password):
-            if not self.is_row_valid('socks5', address, port, user, password, ''):
-                return False
-            key = f'{address}:{port}'
-            with Globals.outbounds_lock:
-                if key not in Globals.outbounds_dict:
-                    Globals.outbounds_dict[key] = {'Tag': ''}
-                Globals.outbounds_dict[key]['Protocol'] = 'socks5'
-                Globals.outbounds_dict[key]['Address'] = address
-                Globals.outbounds_dict[key]['Port'] = port
-                Globals.outbounds_dict[key]['User'] = user
-                Globals.outbounds_dict[key]['Password'] = password
-                Globals.outbounds_dict[key]['Encryption'] = ''
-                Globals.outbounds_dict[key]['Remarks'] = ''
-            return key
-
-        par1, par2, par3, par4 = ('', '', '', '')
-        if rest.count('@') == 1 and rest.count(':') == 2:
-            rest_l, rest_r = rest.split('@')
-            par1, par2 = rest_l.split(':')
-            par3, par4 = rest_r.split(':')
-        elif rest.count(':') == 3:
-            par1, par2, par3, par4 = rest.split(':')
-        elif rest.count(':') == 1:
-            par1, par2 = rest.split(':')
-        else:
-            return False
-        if not par1 or not par2:
-            return False
-        if par3:
-            if not par4:
-                return False
-            if '.' in par3 and par4.isdigit():
-                if '.' in par1 and par2.isdigit():
-                    return False
-                key = _make_outbounds_dict(par3, par4, par1, par2)
-            elif '.' in par1 and par2.isdigit():
-                key = _make_outbounds_dict(par1, par2, par3, par4)
-            else:
-                return False
-        else:
-            if par4:
-                return False
-            if '.' not in par1:
-                return False
-            if not par2.isdigit():
-                return False
-            key = _make_outbounds_dict(par1, par2, par3, par4)
-        if not key:
-            return False
-        if not self.add_row_outbounds(key):
-            return False
-        return key
-
-    def parse_ss(self, rest):
-
-        def _make_outbounds_dict(server, port, method, password, remarks):
-            if not self.is_row_valid('ss', server, port, '', password, method):
-                return False
-            key = f'{server}:{port}'
-            with Globals.outbounds_lock:
-                if key not in Globals.outbounds_dict:
-                    Globals.outbounds_dict[key] = {'Tag': ''}
-                Globals.outbounds_dict[key]['Protocol'] = 'ss'
-                Globals.outbounds_dict[key]['Address'] = server
-                Globals.outbounds_dict[key]['Port'] = port
-                Globals.outbounds_dict[key]['User'] = ''
-                Globals.outbounds_dict[key]['Password'] = password
-                Globals.outbounds_dict[key]['Encryption'] = method
-                Globals.outbounds_dict[key]['Remarks'] = remarks
-            return key
-
+    def parse_shadowsocks(self, rest, source):
         match = re.match(r'(?P<params>.+)@(?P<server>[^:]+):(?P<port>\d+)(?:#(?P<remarks>.+))?', rest)
         if not match:
-            return False
-        method_password = self.base64_decode(match.group('params'))
-        if method_password.count(':') != 1:
-            return False
-        method, password = method_password.split(':')
-        if not method or not password:
-            return False
-        server = match.group('server')
-        if '.' not in server:
-            return False
+            return
+        encryption_password = self.base64_decode(match.group('params'))
+        if encryption_password.count(':') != 1:
+            return
+        encryption, password = encryption_password.split(':')
+        address = match.group('server')
         port = match.group('port')
-        remarks = unquote(match.group('remarks')).strip()
-        key = _make_outbounds_dict(server, port, method, password, remarks)
-        if not key:
-            return False
-        if not self.add_row_outbounds(key):
-            return False
-        return key
+        key = f'{address}:{port}'
+        remarks = unquote(match.group('remarks')).strip() if match.group('remarks') else ''
+        source = source if source else self.outbounds.get(key, {}).get('source', '')
+        source_tag = self.find_source_tag(key, source)
+        self.add_row({
+            'source_tag': source_tag,
+            'source': source,
+            'protocol': 'shadowsocks',
+            'address': address,
+            'port': port,
+            'encryption': encryption,
+            'password': password,
+            'net': '',
+            'security': '',
+            'remarks': remarks
+        })
 
     def parse_subscribe(self, source):
         try:
@@ -532,67 +395,236 @@ class OutboundsTab(QWidget):
             if res.status_code != 200:
                 return
             urls = res.text
+            if not urls:
+                return
             if '://' not in urls:
                 urls = self.base64_decode(urls)
             if '://' not in urls:
                 return
             url_list = urls.split('\n')
             for url in url_list:
-                self.parse_link(url)
+                if not url:
+                    return
+                if '://' not in url:
+                    url = self.base64_decode(url)
+                if '://' not in url:
+                    continue
+                self.parse_link(url, source)
         except Exception as e:
             Globals._Log.info(self.user, f'Failed to parse subscription: {source}, Error: {e}')
 
+    def parse_trojan(self, rest, source):
+        base, _, fragment = rest.partition('#')
+        parsed_url = urlparse(f'trojan://{base}')
+        params = parse_qs(parsed_url.query)
+
+        password = parsed_url.username
+        address = parsed_url.hostname
+        port = str(parsed_url.port)
+        key = f'{address}:{port}'
+        remarks = unquote(fragment).strip() if fragment else ''
+        source = source if source else self.outbounds.get(key, {}).get('source', '')
+        source_tag = self.find_source_tag(key, source)
+
+        additional_params = {k: v[0] for k, v in params.items()}
+
+        self.add_row({
+            'source_tag': source_tag,
+            'source': source,
+            'protocol': 'trojan',
+            'address': address,
+            'port': port,
+            'encryption': '',
+            'password': password,
+            'net': additional_params.get('type', ''),
+            'security': '',
+            'remarks': remarks,
+            **additional_params
+        })
+
+    def parse_vless(self, rest, source):
+        base, _, fragment = rest.partition('#')
+        parsed_url = urlparse(f'vless://{base}')
+        params = parse_qs(parsed_url.query)
+
+        uuid = parsed_url.username
+        address = parsed_url.hostname
+        port = str(parsed_url.port)
+        key = f'{address}:{port}'
+        remarks = unquote(fragment).strip() if fragment else ''
+        source = source if source else self.outbounds.get(key, {}).get('source', '')
+        source_tag = self.find_source_tag(key, source)
+
+        additional_params = {k: v[0] for k, v in params.items()}
+
+        self.add_row({
+            'source_tag': source_tag,
+            'source': source,
+            'protocol': 'vless',
+            'address': address,
+            'port': port,
+            'encryption': '',
+            'password': '',
+            'net': additional_params.get('type', ''),
+            'security': '',
+            'remarks': remarks,
+            'uuid': uuid,
+            **additional_params
+        })
+
+    def parse_vmess(self, rest, source):
+        json_str = self.base64_decode(rest)
+        data = json.loads(json_str)
+        address = data.get('add', '')
+        port = data.get('port', '')
+        key = f'{address}:{port}'
+        remarks = data.get('ps', '')
+        source = source if source else self.outbounds.get(key, {}).get('source', '')
+        source_tag = self.find_source_tag(key, source)
+
+        self.add_row({
+            'source_tag': source_tag,
+            'source': source,
+            'protocol': 'vmess',
+            'address': address,
+            'port': port,
+            'encryption': data.get('scy', ''),
+            'password': '',
+            'net': '',
+            'security': data.get('tls', ''),
+            'remarks': remarks,
+            **data
+        })
+
     def reload_rows(self):
-        self.table.blockSignals(True)
-        for row in reversed(range(self.table.rowCount())):
-            self.delete_row(row)
-        self.table.blockSignals(False)
         self.load_data_from_file()
         Globals._Log.info(self.user, f'Reload complete.')
 
     def save_data_to_file(self):
 
-        def _encode_ss(address, port, password, encryption, remarks):
-            method_password = f'{encryption}:{password}'
-            method_password_encoded = base64.urlsafe_b64encode(method_password.encode()).decode().rstrip("=")
-            ss_link = f'ss://{method_password_encoded}@{address}:{port}'
+        def _encode_shadowsocks(address, port):
+            key = f'{address}:{port}'
+            encryption = self.outbounds[key]['encryption']
+            password = self.outbounds[key]['password']
+            remarks = self.outbounds[key]['remarks']
+            encryption_password = f'{encryption}:{password}'
+            encryption_password_encoded = base64.urlsafe_b64encode(encryption_password.encode()).decode().rstrip("=")
+            url = f'ss://{encryption_password_encoded}@{address}:{port}'
             if remarks:
-                remarks_encoded = quote(remarks)
-                ss_link += f"#{remarks_encoded}"
-            return ss_link
+                url += f'#{quote(remarks)}'
+            return url
         
-        lines = ''
+        def _encode_socks(address, port):
+            key = f'{address}:{port}'
+            user = self.outbounds[key]['user']
+            password = self.outbounds[key]['password']
+            remarks = self.outbounds[key]['remarks']
+            user_password = f'{user}:{password}'
+            user_password_encoded = base64.urlsafe_b64encode(user_password.encode()).decode().rstrip("=")
+            url = f'socks://{user_password_encoded}@{address}:{port}'
+            if remarks:
+                url += f'#{quote(remarks)}'
+            return url
+        
+        def _encode_trojan(address, port):
+            key = f'{address}:{port}'
+            data = self.outbounds[key]
+            password = data['password']
+            remarks = data['remarks']
+            url = f'trojan://{password}@{address}:{port}'
+
+            excluded_keys = {'source_tag', 'source', 'protocol', 'address', 'port', 'encryption', 'password', 'net', 'remarks'}
+            query_params = {k: v for k, v in data.items() if k not in excluded_keys and v}
+            params_string = '&'.join([f'{k}={quote(str(v))}' for k, v in query_params.items()])
+            url += f'?{params_string}'
+
+            if remarks:
+                url += f'#{quote(remarks)}'
+
+            return url
+        
+        def _encode_vless(address, port):
+            key = f'{address}:{port}'
+            data = self.outbounds[key]
+            uuid = data['uuid']
+            remarks = data['remarks']
+            url = f'vless://{uuid}@{address}:{port}'
+
+            excluded_keys = {'source_tag', 'source', 'protocol', 'address', 'port', 'password', 'net', 'remarks', 'uuid'}
+            query_params = {k: v for k, v in data.items() if k not in excluded_keys and v}
+            params_string = '&'.join([f'{k}={quote(str(v))}' for k, v in query_params.items()])
+            url += f'?{params_string}'
+
+            if remarks:
+                url += f'#{quote(remarks)}'
+
+            return url
+        
+        def _encode_vmess(address, port):
+            key = f'{address}:{port}'
+            data = self.outbounds[key]
+
+            excluded_keys = {'source_tag', 'source', 'protocol', 'address', 'encryption', 'password', 'security', 'remarks'}
+            vmess_config = {k: v for k, v in data.items() if k not in excluded_keys}
+
+            json_str = json.dumps(vmess_config)
+
+            encoded_str = base64.urlsafe_b64encode(json_str.encode()).decode()
+
+            url = f'vmess://{encoded_str}'
+
+            return url
+        
+        if not self.valid_datas():
+            Globals._Log.error(self.user, 'Failed to save outbounds datas.')
+            return
         with Globals.outbounds_lock:
-            datas = Globals.outbounds_dict.copy()
-        for key, data in datas.items():
-            protocol, address, port, user, password, encryption, remarks, tag, build_key = self.parse_dict_data(data)
-            if key != build_key:
-                self.delete_json(key)
+            self.outbounds = Globals.outbounds_dict
+
+        lines = ''
+        for row in range(self.table.rowCount()):
+            protocol = self.table.item(row, 2).text()
+            address = self.table.item(row, 3).text()
+            port = self.table.item(row, 4).text()
+            if protocol == 'socks':
+                lines += _encode_socks(address, port)
+            elif protocol == 'shadowsocks':
+                lines += _encode_shadowsocks(address, port)
+            elif protocol == 'trojan':
+                lines += _encode_trojan(address, port)
+            elif protocol == 'vless':
+                lines += _encode_vless(address, port)
+            elif protocol == 'vmess':
+                lines += _encode_vmess(address, port)
+            else:
                 continue
-            if not self.is_row_valid(protocol, address, port, user, password, encryption):
-                self.delete_json(key)
-                continue
-            if protocol == 'socks5':
-                lines += f'{protocol}://{address}:{port}'
-                if all([user, password]):
-                    lines += f'@{user}:{password}'
-            elif protocol == 'ss':
-                lines += _encode_ss(address, port, password, encryption, remarks)
             lines += '\n'
+
         try:
             with open('outbounds.json', 'w') as file:
-                json.dump(Globals.outbounds_dict, file, indent=4)
-            Globals._Log.info(self.user, 'Outbound data saved successfully to outbounds.json.')
+                json.dump(self.outbounds, file, indent=4)
+            Globals._Log.info(self.user, 'outbounds datas saved successfully to outbounds.json.')
             with open('outbounds.txt', 'w') as file:
                 file.write(lines)
-            Globals._Log.info(self.user, 'Outbound data saved successfully to outbounds.txt.')
+            Globals._Log.info(self.user, 'outbounds datas saved successfully to outbounds.txt.')
         except Exception as e:
-            Globals._Log.error(self.user, f'Failed to save Outbound data, Error: {e}')
+            Globals._Log.error(self.user, f'Failed to save outbounds datas, Error: {e}')
 
-    def set_protocol(self, row, column, protocol):
-        item = QTableWidgetItem(protocol)
-        item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.table.setItem(row, column, item)
+    def set_checked_by_source_tag(self, row):
+        chk_box = self.get_checkbox(row)
+        if not chk_box:
+            return
+        checked = not chk_box.isChecked()
+        source_tag = self.table.item(row, 1).text()
+        if not source_tag:
+            chk_box.setChecked(checked)
+            return
+        for _row in range(self.table.rowCount()):
+            chk_box = self.get_checkbox(_row)
+            if source_tag == self.table.item(_row, 1).text():
+                chk_box.setChecked(checked)
+            else:
+                chk_box.setChecked(False)
 
     def setup_ui(self):
         layout = QVBoxLayout(self)
@@ -603,7 +635,7 @@ class OutboundsTab(QWidget):
         button_add.clicked.connect(self.show_add_menu)
         top_layout.addWidget(button_add)
         button_delete = QPushButton('Delete')
-        button_delete.clicked.connect(self.delete_selected_rows_outbounds)
+        button_delete.clicked.connect(self.delete_selected_rows)
         top_layout.addWidget(button_delete)
         button_reload = QPushButton('Reload')
         button_reload.clicked.connect(self.reload_rows)
@@ -621,34 +653,62 @@ class OutboundsTab(QWidget):
         self.table.setHorizontalHeaderLabels(header_labels)
         self.table.verticalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
         self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)
+        self.table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.table.setColumnWidth(0, 50)
         for column in range(1, self.table.columnCount()):
             self.table.horizontalHeader().setSectionResizeMode(column, QHeaderView.ResizeMode.ResizeToContents)
         self.table.cellClicked.connect(self.cell_was_clicked)
-        self.table.cellChanged.connect(self.on_cell_changed)
+        self.table.doubleClicked.connect(self.cell_was_double_clicked)
         self.load_data_from_file()
 
     def show_add_menu(self):
         menu = QMenu(self)
-        action_blank_line = QAction('blank_line', self)
+        action_add_shadowsocks = QAction('shadowsocks', self)
+        action_add_socks = QAction('socks', self)
+        action_add_vless = QAction('vless', self)
+        action_add_vmess = QAction('vmess', self)
+        action_add_trojan = QAction('trojan', self)
         action_from_clipboard = QAction('from_clipboard', self)
 
-        action_blank_line.triggered.connect(self.add_blank_row)
+        action_add_shadowsocks.triggered.connect(lambda: OutboundsDialog(self, self.add_row_signal, 'shadowsocks'))
+        action_add_socks.triggered.connect(lambda: OutboundsDialog(self, self.add_row_signal, 'socks'))
+        action_add_trojan.triggered.connect(lambda: OutboundsDialog(self, self.add_row_signal, 'trojan'))
+        action_add_vless.triggered.connect(lambda: OutboundsDialog(self, self.add_row_signal, 'vless'))
+        action_add_vmess.triggered.connect(lambda: OutboundsDialog(self, self.add_row_signal, 'vmess'))
         action_from_clipboard.triggered.connect(self.parse_from_clipboard)
 
-        menu.addAction(action_blank_line)
+        menu.addAction(action_add_shadowsocks)
+        menu.addAction(action_add_socks)
+        menu.addAction(action_add_vless)
+        menu.addAction(action_add_vmess)
+        menu.addAction(action_add_trojan)
         menu.addAction(action_from_clipboard)
         menu.popup(QCursor.pos())
 
-    def show_protocol_selection_menu(self, row, column):
-        menu = QMenu(self)
-        action_socks5 = QAction('socks5', self)
-        action_ss = QAction('ss', self)
-        action_socks5.triggered.connect(lambda: self.set_protocol(row, column, 'socks5'))
-        action_ss.triggered.connect(lambda: self.set_protocol(row, column, 'ss'))
-        menu.addAction(action_socks5)
-        menu.addAction(action_ss)
-        menu.popup(QCursor.pos())
+    @pyqtSlot(str)
+    def update_background(self, key='', row=-1):
+
+        def _highlight_row(row, key):
+            with Globals.routing_used_outbounds_keys_lock:
+                if key not in Globals.routing_used_outbounds_keys:
+                    self.highlight_row(row, 'white')
+                    return
+                if key in Globals.routing_used_outbounds_through_keys:
+                    self.highlight_row(row, 'blue')
+                    return
+                self.highlight_row(row, 'green')
+
+        rowCount = self.table.rowCount()
+        if row >= 0 and row <= rowCount:
+            if not key:
+                key = f'{self.table.item(row, 3).text()}:{self.table.item(row, 4).text()}'
+            _highlight_row(row, key)
+            return
+        if not key:
+            return
+        row = self.find_row_by_key(key)
+        if row >= 0 and row <= rowCount:
+            _highlight_row(row, key)
 
     def update_orange_datas(self):
         self.orange_datas.clear()
@@ -656,3 +716,189 @@ class OutboundsTab(QWidget):
             for col in range(1, self.table.columnCount()):
                 cell_value = self.table.item(row, col).text() if self.table.item(row, col) else ''
                 self.orange_datas[(row, col)] = cell_value
+
+    def valid_datas(self):
+        keys = {}
+        remarkses = {}
+        for row in range(self.table.rowCount()):
+            source_tag, protocol, address, port, encryption, net, security, remarks, key = self.parse_row_data(row)
+        
+            if not self.valid_protocol(protocol):
+                self.highlight_row(row, 'red', 2)
+                return False
+            
+            if not self.valid_address(address):
+                self.highlight_row(row, 'red', 3)
+                return False
+            
+            if not self.valid_port(port):
+                self.highlight_row(row, 'red', 4)
+                return False
+            
+            if key in keys:
+                self.highlight_row(row, 'red', 3)
+                self.highlight_row(row, 'red', 4)
+                self.highlight_row(keys[key], 'red', 3)
+                self.highlight_row(keys[key], 'red', 4)
+                return False
+            else:
+                keys[key] = row
+            
+            if not self.valid_encryption(encryption):
+                self.highlight_row(row, 'red', 5)
+                return False
+            
+            if not self.valid_net(net):
+                self.highlight_row(row, 'red', 6)
+                return False
+            
+            if not self.valid_security(security):
+                self.highlight_row(row, 'red', 7)
+                return False
+            
+            if remarks:
+                if remarks in remarkses:
+                    self.highlight_row(row, 'red', 8)
+                    self.highlight_row(remarkses[remarks], 'red', 8)
+                    return False
+                else:
+                    remarkses[remarks] = row
+            
+            self.update_background(key, row)
+
+        return True
+
+    def valid_data_by_row(self, row):
+        rowCount = self.table.rowCount()
+        if row > rowCount or row < 0:
+            return False
+        
+        source_tag, protocol, address, port, encryption, net, security, remarks, key = self.parse_row_data(row)
+        
+        if not self.valid_protocol(protocol):
+            self.highlight_row(row, 'red', 2)
+            return False
+        
+        if not self.valid_address(address):
+            self.highlight_row(row, 'red', 3)
+            return False
+        
+        if not self.valid_port(port):
+            self.highlight_row(row, 'red', 4)
+            return False
+        
+        if not self.valid_encryption(encryption):
+            self.highlight_row(row, 'red', 5)
+            return False
+        
+        if not self.valid_net(net):
+            self.highlight_row(row, 'red', 6)
+            return False
+        
+        if not self.valid_security(security):
+            self.highlight_row(row, 'red', 7)
+            return False
+        
+        duplicate_row = self.valid_key(row, address, port)
+        if duplicate_row != -1:
+            self.highlight_row(row, 'red', 3)
+            self.highlight_row(row, 'red', 4)
+            self.highlight_row(duplicate_row, 'red', 3)
+            self.highlight_row(duplicate_row, 'red', 4)
+            return False
+        
+        duplicate_row = self.valid_remarks(row, remarks)
+        if duplicate_row != -1:
+            self.highlight_row(row, 'red', 8)
+            self.highlight_row(duplicate_row, 'red', 8)
+            return False
+
+        self.update_background(key, row)
+        return True
+
+    def valid_address(self, address):
+        if not address:
+            Globals._Log.error(self, 'Error!', 'Address field cannot be empty.')
+            return False
+        if '.' not in address:
+            Globals._Log.error(self.user, f'Invalid server: {address}')
+            return False
+        return True
+    
+    def valid_encryption(self, encryption):
+        if encryption not in ['', 'auto', 'none', 'plain', 'aes-128-gcm', 'chacha20-poly1305', 'chacha20-ietf-poly1305', 'xchacha20-poly1305',
+                              'xchacha20-ietf-poly1305', '2022-blake3-aes-128-gcm', '2022-blake3-aes-256-gcm', '2022-blake3-chacha20-poly1305']:
+            Globals._Log.error(self.user, f'Invalid encryption: {encryption}')
+            return False
+        return True
+    
+    def valid_key(self, row, address, port):
+        if not address:
+            return -1
+        if not port:
+            return -1
+        for i in range(self.table.rowCount()):
+            if row == i:
+                continue
+            if address != self.table.item(i, 3).text():
+                continue
+            if port != self.table.item(i, 4).text():
+                continue
+            return i
+        return -1
+    
+    def valid_net(self, net):
+        if net not in ['', 'tcp', 'kcp', 'ws', 'h2', 'quic', 'grpc']:
+            Globals._Log.error(self.user, f'Invalid transfer protocol: {net}')
+            return False
+        return True
+        
+    def valid_password(self, password):
+        if ':' in password:
+            Globals._Log.error(self.user, f'Invalid password: {password}')
+            return False
+        return True
+        
+    def valid_port(self, port):
+        if not port.isdigit():
+            Globals._Log.error(self.user, f'Invalid port: {port}')
+            return False
+        if not (0 < int(port) < 65536):
+            Globals._Log.error(self.user, f'Invalid port: {port}')
+            return False
+        return True
+
+    def valid_protocol(self, protocol):
+        if protocol not in ['shadowsocks', 'socks', 'trojan', 'vless', 'vmess']:
+            Globals._Log.error(self.user, f'Invalid protocol: {protocol}')
+            return False
+        return True
+    
+    def valid_remarks(self, row, remarks):
+        if not remarks:
+            return -1
+        for i in range(self.table.rowCount()):
+            if row == i:
+                continue
+            if remarks != self.table.item(i, 8).text():
+                continue
+            return i
+        return -1
+    
+    def valid_security(self, security):
+        if security not in ['', 'tls', 'reality']:
+            Globals._Log.error(self.user, f'Invalid security: {security}')
+            return False
+        return True
+        
+    def valid_user(self, user):
+        if ':' in user:
+            Globals._Log.error(self.user, f'Invalid user: {user}')
+            return False
+        return True
+        
+    def valid_user_password(self, user, password):
+        if bool(user) != bool(password):
+            Globals._Log.error(self.user, f'Invalid user/password combination: {user}, {password}')
+            return False
+        return True
