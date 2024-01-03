@@ -134,19 +134,14 @@ class InboundsTab(QWidget):
 
         Globals._Log.info(self.user, f'New row added with key: {key}.')
 
-    def base64_decode(self, text):
+    def base64_decode(self, source):
         try:
-            text = text.replace('_', '/').replace('-', '+')
-            remain = len(text) % 4
-            if remain == 1:
-                text += '==='
-            elif remain == 2:
-                text += '=='
-            elif remain == 3:
-                text += '='
+            text = source.replace('_', '/').replace('-', '+')
+            padding = -len(text) % 4
+            text += '=' * padding
             return base64.urlsafe_b64decode(text).decode()
         except:
-            return text
+            return source
 
     def cell_was_clicked(self, row, column):
         if column == 0:

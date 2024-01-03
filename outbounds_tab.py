@@ -20,7 +20,6 @@ from PyQt6.QtWidgets import (
     QHeaderView,
     QHBoxLayout,
     QMenu,
-    QMessageBox,
     QPushButton,
     QTableWidget,
     QTableWidgetItem,
@@ -35,6 +34,7 @@ from urllib.parse import (
 )
 
 from globals import Globals
+from json_mapper import JsonMapper
 from outbounds_dialog import OutboundsDialog
 
 class OutboundsTab(QWidget):
@@ -124,19 +124,14 @@ class OutboundsTab(QWidget):
 
         Globals._Log.info(self.user, f'New row added with key: {key}.')
 
-    def base64_decode(self, text):
+    def base64_decode(self, source):
         try:
-            text = text.replace('_', '/').replace('-', '+')
-            remain = len(text) % 4
-            if remain == 1:
-                text += '==='
-            elif remain == 2:
-                text += '=='
-            elif remain == 3:
-                text += '='
+            text = source.replace('_', '/').replace('-', '+')
+            padding = -len(text) % 4
+            text += '=' * padding
             return base64.urlsafe_b64decode(text).decode()
         except:
-            return text
+            return source
 
     def cell_was_clicked(self, row, column):
         if column == 0:
@@ -256,8 +251,8 @@ class OutboundsTab(QWidget):
                 if key != f'{data.get("address", "")}:{data.get("port", "")}':
                     continue
                 self.outbounds[key] = data
-                remarks = data['remarks'].replace('|', '').lower()
-                self.outbounds[key]['remarks'] = remarks
+                self.outbounds[key]['source_tag'] = data.get('source_tag', '').replace('|', '').lower()
+                self.outbounds[key]['remarks'] = data.get('remarks', '').replace('|', '').lower()
             Globals._Log.info(self.user, 'outbounds datas loaded successfully from outbounds.json.')
 
         _clear_table()
@@ -428,6 +423,9 @@ class OutboundsTab(QWidget):
 
         additional_params = {k: v[0] for k, v in params.items()}
 
+        print(params)
+        print(additional_params)
+
         self.add_row({
             'source_tag': source_tag,
             'source': source,
@@ -456,6 +454,8 @@ class OutboundsTab(QWidget):
         source_tag = self.find_source_tag(key, source)
 
         additional_params = {k: v[0] for k, v in params.items()}
+        print(params)
+        print(additional_params)
 
         self.add_row({
             'source_tag': source_tag,
@@ -481,6 +481,8 @@ class OutboundsTab(QWidget):
         remarks = data.get('ps', '')
         source = source if source else self.outbounds.get(key, {}).get('source', '')
         source_tag = self.find_source_tag(key, source)
+
+        print(f'vmess:{data}')
 
         self.add_row({
             'source_tag': source_tag,
@@ -722,7 +724,7 @@ class OutboundsTab(QWidget):
         remarkses = {}
         for row in range(self.table.rowCount()):
             source_tag, protocol, address, port, encryption, net, security, remarks, key = self.parse_row_data(row)
-        
+
             if not self.valid_protocol(protocol):
                 self.highlight_row(row, 'red', 2)
                 return False
@@ -890,7 +892,7 @@ class OutboundsTab(QWidget):
             Globals._Log.error(self.user, f'Invalid security: {security}')
             return False
         return True
-        
+    
     def valid_user(self, user):
         if ':' in user:
             Globals._Log.error(self.user, f'Invalid user: {user}')

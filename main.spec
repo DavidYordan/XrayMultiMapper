@@ -28,7 +28,7 @@ exe = EXE(
     a.zipfiles,
     a.datas,
     [],
-    name='V2XrayMultiMapper',
+    name='XrayMultiMapper',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -42,5 +42,5 @@ exe = EXE(
     codesign_identity=None,
     entitlements_file=None,
     version='',
-    icon='img/V2XrayMultiMapper.ico',
+    icon='img/XrayMultiMapper.ico',
 )
