@@ -7,6 +7,8 @@ block_cipher = None
 current_dir = os.getcwd()
 
 datas = [
+    (os.path.join(current_dir, 'xray', 'geoip.dat'), 'xray'),
+    (os.path.join(current_dir, 'xray', 'geosite.dat'), 'xray'),
     (os.path.join(current_dir, 'xray', 'xray.exe'), 'xray'),
     (os.path.join(current_dir, 'img', '*.ico'), 'img'),
     (os.path.join(current_dir, 'dist', 'XrayMultiMapper.exe'), 'dist'),
@@ -37,7 +39,7 @@ exe = EXE(
     a.zipfiles,
     a.datas,
     [],
-    name='V2XrayResourceExtractor',
+    name='XrayResourceExtractor',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -51,5 +53,5 @@ exe = EXE(
     codesign_identity=None,
     entitlements_file=None,
     version='',
-    icon='img/V2XrayResourceExtractor.ico',
+    icon='img/XrayResourceExtractor.ico',
 )
